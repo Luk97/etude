@@ -1,0 +1,7 @@
+{
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+}
