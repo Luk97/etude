@@ -1,6 +1,6 @@
-#include<print>
+#include <print>
 
-import etude.core;
+#include <etude/core/vec2.h>
 
 int main() {
     const etude::Vec2 v{3.0f, 4.0f};

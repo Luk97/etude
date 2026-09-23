@@ -1,10 +1,8 @@
-module;
+#pragma once
 
-#include<cmath>
+#include <cmath>
 
-export module etude.core;
-
-export namespace etude {
+namespace etude {
 
     struct Vec2 {
         float x = 0.0f;
