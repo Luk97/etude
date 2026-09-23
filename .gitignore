@@ -1,0 +1,9 @@
+/build/
+/out/
+/.cache/
+/compile_commands.json
+CMakeUserPresets.json
+
+.DS_Store
+Thumbs.db
+desktop.ini
