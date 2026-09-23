@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 4.4)
+
 project(etude LANGUAGES CXX)
 
 option(ETUDE_ENABLE_ASAN "Build with AddressSanitizer" OFF)
@@ -8,4 +9,5 @@ endif()
 
 enable_testing()
 
+add_subdirectory(engine/core)
 add_subdirectory(apps/hello)
