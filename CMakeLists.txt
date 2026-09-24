@@ -19,5 +19,6 @@ endif()
 enable_testing()
 
 add_subdirectory(engine/core)
+add_subdirectory(engine/platform)
 add_subdirectory(apps/hello)
 add_subdirectory(tests)
