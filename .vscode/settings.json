@@ -4,5 +4,10 @@
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "editor.formatOnSave": true
+    "C_Cpp.default.cppStandard": "c++23",
+    "C_Cpp.default.intelliSenseMode": "windows-msvc-x64",
+    "editor.rulers": [120],
+    "[cpp]": {
+        "editor.formatOnSave": true
+    }
 }
