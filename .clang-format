@@ -4,5 +4,13 @@ ColumnLimit: 120
 NamespaceIndentation: All
 AccessModifierOffset: -4
 PointerAlignment: Left
-AllowShortFunctionsOnASingleLine: None
 FixNamespaceComments: false
+IndentCaseLabels: true
+BreakTemplateDeclarations: Yes
+AllowShortEnumsOnASingleLine: false
+IndentPPDirectives: BeforeHash
+BinPackParameters: OnePerLine
+AllowAllParametersOfDeclarationOnNextLine: false
+PenaltyReturnTypeOnItsOwnLine: 1000
+AlignAfterOpenBracket: BlockIndent
+AllowShortFunctionsOnASingleLine: Empty
