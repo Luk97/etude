@@ -4,6 +4,7 @@
 
 namespace etude {
 
+    /// @brief Two-dimensional vector of floats for positions, directions and sizes.
     struct Vec2 {
         float x = 0.0f;
         float y = 0.0f;
@@ -22,6 +23,8 @@ namespace etude {
 
         constexpr bool operator==(const Vec2&) const = default;
 
+        /// @brief Returns the squared length. Cheaper than length(), because it skips the square root,
+        /// which is enough for comparing lengths.
         constexpr float lengthSquared() const {
             return x * x + y * y;
         }
