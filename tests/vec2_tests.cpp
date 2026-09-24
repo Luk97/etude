@@ -1,0 +1,11 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <etude/core/vec2.h>
+
+using etude::Vec2;
+
+TEST_CASE("Vec2 adds and subtracts component-wise") {
+    CHECK(Vec2{1.0f, 2.0f} + Vec2{3.0f, 4.0f} == Vec2{4.0f, 6.0f});
+    CHECK(Vec2{3.0f, 4.0f} - Vec2{1.0f, 1.0f} == Vec2{2.0f, 3.0f});
+}

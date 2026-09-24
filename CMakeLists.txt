@@ -20,3 +20,4 @@ enable_testing()
 
 add_subdirectory(engine/core)
 add_subdirectory(apps/hello)
+add_subdirectory(tests)
