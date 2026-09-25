@@ -7,7 +7,7 @@ namespace etude {
 
     /// @brief Turns frame times of any length into a whole number of fixed simulation steps.
     /// Every frame adds its duration to an account, and each full step duration in the account is one step.
-    /// The reset stays in the account for the next frame, so the simulation keeps its rate at any frame rate.
+    /// The rest stays in the account for the next frame, so the simulation keeps its rate at any frame rate.
     class FixedTimestep {
     public:
         using Duration = std::chrono::nanoseconds;
@@ -18,7 +18,7 @@ namespace etude {
 
         explicit FixedTimestep(int stepsPerSecond) : stepDuration(Duration(std::chrono::seconds(1)) / stepsPerSecond) {}
 
-        /// @brief Adds the duration of one frame and returns how many simulations steps are due now.
+        /// @brief Adds the duration of one frame and returns how many simulation steps are due now.
         int advance(Duration frame) {
             account += std::min(frame, maxFrame);
             const auto steps = account / stepDuration;
