@@ -4,18 +4,26 @@
 
 #include <cstddef>
 #include <cstdlib>
+#include <optional>
 #include <string>
+#include <utility>
 
 #include <windows.h>
+#include <windowsx.h>
 
 namespace etude {
 
     struct Window::Native {
         HWND handle = nullptr;
         bool closeRequested = false;
+        Input input;
 
         /// @brief Receives every message that Windows sends to the window.
         static LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
+
+        /// @brief Returns the Native that WM_NCCREATE stored in the window. Only WM_GETMINMAXINFO arrives before
+        /// WM_NCCREATE, so every other message may use it.
+        static Native& from(HWND window);
     };
 
     namespace {
@@ -46,6 +54,63 @@ namespace etude {
 
             return windowClass.lpszClassName;
         }
+
+        /// @brief Maps a Win32 virtual-key code to a Key, or to nothing for keys that ETUDE does not support.
+        std::optional<Key> toKey(WPARAM virtualKey) {
+            if (virtualKey >= 'A' && virtualKey <= 'Z') {
+                return static_cast<Key>(std::to_underlying(Key::A) + (virtualKey - 'A'));
+            }
+            if (virtualKey >= '0' && virtualKey <= '9') {
+                return static_cast<Key>(std::to_underlying(Key::Digit0) + (virtualKey - '0'));
+            }
+            switch (virtualKey) {
+                case VK_SPACE:
+                    return Key::Space;
+                case VK_RETURN:
+                    return Key::Enter;
+                case VK_ESCAPE:
+                    return Key::Escape;
+                case VK_LEFT:
+                    return Key::Left;
+                case VK_RIGHT:
+                    return Key::Right;
+                case VK_UP:
+                    return Key::Up;
+                case VK_DOWN:
+                    return Key::Down;
+                case VK_SHIFT:
+                    return Key::Shift;
+                case VK_CONTROL:
+                    return Key::Control;
+                case VK_MENU:
+                    return Key::Alt;
+                default:
+                    return std::nullopt;
+            }
+        }
+
+        /// @brief Returns the mouse button of a button message such as WM_LBUTTONDOWN.
+        MouseButton toMouseButton(UINT message) {
+            switch (message) {
+                case WM_LBUTTONDOWN:
+                case WM_LBUTTONUP:
+                    return MouseButton::Left;
+                case WM_RBUTTONDOWN:
+                case WM_RBUTTONUP:
+                    return MouseButton::Right;
+                default:
+                    return MouseButton::Middle;
+            }
+        }
+
+        /// @brief Reads the cursor position in client pixels from the parameter of a mouse message.
+        Vec2 toPosition(LPARAM lParam) {
+            return {static_cast<float>(GET_X_LPARAM(lParam)), static_cast<float>(GET_Y_LPARAM(lParam))};
+        }
+    }
+
+    Window::Native& Window::Native::from(HWND window) {
+        return *reinterpret_cast<Native*>(GetWindowLongPtrW(window, GWLP_USERDATA));
     }
 
     LRESULT CALLBACK Window::Native::windowProcedure(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -59,10 +124,57 @@ namespace etude {
 
             case WM_CLOSE: {
                 // Only note the request. Skipping DefWindowProcW keeps the window alive until ~Window destroys it.
-                auto* native = reinterpret_cast<Native*>(GetWindowLongPtrW(window, GWLP_USERDATA));
-                native->closeRequested = true;
+                from(window).closeRequested = true;
                 return 0;
             }
+
+            case WM_SYSCOMMAND:
+                // Releasing Alt would switch to menu mode, where the next key goes to the window menu, not the game.
+                if ((wParam & 0xFFF0) == SC_KEYMENU) {
+                    return 0;
+                }
+                break;
+
+            case WM_KILLFOCUS:
+                from(window).input.onFocusLost();
+                break;
+
+            case WM_KEYDOWN:
+            case WM_SYSKEYDOWN:
+                if (const auto key = toKey(wParam)) {
+                    from(window).input.onKeyDown(*key);
+                }
+                break;
+
+            case WM_KEYUP:
+            case WM_SYSKEYUP:
+                if (const auto key = toKey(wParam)) {
+                    from(window).input.onKeyUp(*key);
+                }
+                break;
+
+            case WM_MOUSEMOVE:
+                from(window).input.onMouseMove(toPosition(lParam));
+                break;
+
+            case WM_LBUTTONDOWN:
+            case WM_RBUTTONDOWN:
+            case WM_MBUTTONDOWN:
+                // Capturing the mouse delivers the button-up message even if the cursor has left the window by then.
+                SetCapture(window);
+                from(window).input.onMouseMove(toPosition(lParam));
+                from(window).input.onMouseButtonDown(toMouseButton(message));
+                break;
+
+            case WM_LBUTTONUP:
+            case WM_RBUTTONUP:
+            case WM_MBUTTONUP:
+                from(window).input.onMouseMove(toPosition(lParam));
+                from(window).input.onMouseButtonUp(toMouseButton(message));
+                if ((wParam & (MK_LBUTTON | MK_RBUTTON | MK_MBUTTON)) == 0) {
+                    ReleaseCapture();
+                }
+                break;
         }
 
         return DefWindowProcW(window, message, wParam, lParam);
@@ -93,6 +205,8 @@ namespace etude {
     }
 
     void Window::pollEvents() {
+        native->input.beginFrame();
+
         MSG message{};
         while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
             TranslateMessage(&message);
@@ -102,5 +216,9 @@ namespace etude {
 
     bool Window::shouldClose() const {
         return native->closeRequested;
+    }
+
+    const Input& Window::input() const {
+        return native->input;
     }
 }

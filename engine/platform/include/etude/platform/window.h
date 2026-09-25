@@ -1,5 +1,7 @@
 #pragma once
 
+#include <etude/platform/input.h>
+
 #include <memory>
 #include <string_view>
 
@@ -24,6 +26,9 @@ namespace etude {
 
         /// @brief Returns true once the user has asked to close the window, for example with the close button.
         bool shouldClose() const;
+
+        /// @brief Returns the keyboard and mouse state of the current frame.
+        const Input& input() const;
 
     private:
         /// @brief Win32 state and callbacks of the window, defined in window.cpp
