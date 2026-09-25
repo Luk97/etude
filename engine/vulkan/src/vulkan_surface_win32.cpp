@@ -1,4 +1,4 @@
-// The Win32 surface types are only declared when VK_USE_PLATFORM_WIN32_KHR is defined  before vulkan.h, which then
+// The Win32 surface types are only declared when VK_USE_PLATFORM_WIN32_KHR is defined before vulkan.h, which then
 // includes windows.h itself.
 #define VK_USE_PLATFORM_WIN32_KHR
 #define WIN32_LEAN_AND_MEAN
@@ -26,7 +26,7 @@ namespace etude {
         };
 
         VkSurfaceKHR surface = nullptr;
-        check(vkCreateWin32SurfaceKHR(instance, &info, nullptr, &surface), "VkCreateWin32SurfaceKHR");
+        check(vkCreateWin32SurfaceKHR(instance, &info, nullptr, &surface), "vkCreateWin32SurfaceKHR");
         return surface;
     }
 }
