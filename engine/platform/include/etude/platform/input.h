@@ -73,7 +73,7 @@ namespace etude {
     /// @brief Number of mouse buttons.
     inline constexpr std::size_t mouseButtonCount = static_cast<std::size_t>(MouseButton::Count);
 
-    /// @brief Returns the name of a key as it appears in logs lines, for example "A", "7" or "Space".
+    /// @brief Returns the name of a key as it appears in log lines, for example "A", "7" or "Space".
     std::string_view toString(Key key);
 
     /// @brief Returns the name of the mouse button, for example "Left".
