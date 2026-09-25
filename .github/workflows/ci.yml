@@ -8,8 +8,17 @@ on:
 jobs:
   windows:
     runs-on: windows-2025-vs2026
+    env:
+      VULKAN_SDK_VERSION: 1.4.357.0
     steps:
       - uses: actions/checkout@v7
       - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install Vulkan SDK
+        run: |
+          $ProgressPreference = "SilentlyContinue"
+          $installer = "$env:RUNNER_TEMP\vulkan-sdk.exe"
+          Invoke-WebRequest "https://sdk.lunarg.com/sdk/download/$env:VULKAN_SDK_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_SDK_VERSION.exe" -OutFile $installer
+          Start-Process $installer -ArgumentList "--root C:\VulkanSDK --accept-licenses --default-answer --confirm-command install" -Wait
+          "VULKAN_SDK=C:\VulkanSDK" >> $env:GITHUB_ENV
       - run: cmake --version
       - run: cmake --workflow --preset debug
