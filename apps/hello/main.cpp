@@ -1,8 +1,11 @@
 #include <etude/core/clock.h>
+#include <etude/core/fixed_timestep.h>
 #include <etude/core/log.h>
+#include <etude/platform/frame_limiter.h>
 #include <etude/platform/window.h>
 
 #include <cstddef>
+#include <format>
 
 namespace {
 
@@ -29,6 +32,19 @@ namespace {
             }
         }
     }
+
+    /// @brief Switches the frame limit to 30, 60 or 144 frames per second with the keys 1, 2 and 3.
+    void chooseFrameRate(const etude::Input& input, etude::FrameLimiter& limiter) {
+        if (input.pressed(etude::Key::Digit1)) {
+            limiter.setFramesPerSecond(30);
+        }
+        if (input.pressed(etude::Key::Digit2)) {
+            limiter.setFramesPerSecond(60);
+        }
+        if (input.pressed(etude::Key::Digit3)) {
+            limiter.setFramesPerSecond(144);
+        }
+    }
 }
 
 int main() {
@@ -36,9 +52,31 @@ int main() {
     etude::Window window("ÉTUDE", 1280, 720);
     etude::logInfo("Window open after {:.1f} ms", clock.elapsedSeconds() * 1000.0);
 
+    etude::FixedTimestep timestep(60);
+    etude::FrameLimiter limiter(60);
+    etude::Clock frameClock;
+    etude::Clock secondClock;
+    int frames = 0;
+    int steps = 0;
+
     while (!window.shouldClose()) {
         window.pollEvents();
         logInput(window.input());
+        chooseFrameRate(window.input(), limiter);
+
+        // Once there is a game, it advances its simulation by timestep.step() for every due step.
+        steps += timestep.advance(frameClock.restart());
+        ++frames;
+
+        const double elapsed = secondClock.elapsedSeconds();
+        if (elapsed >= 1.0) {
+            window.setTitle(std::format("ÉTUDE | {:.0f} fps | {:.0f} steps/s", frames / elapsed, steps / elapsed));
+            frames = 0;
+            steps = 0;
+            secondClock.reset();
+        }
+
+        limiter.wait();
     }
 
     etude::logInfo("Window closed after {:.1f} s", clock.elapsedSeconds());

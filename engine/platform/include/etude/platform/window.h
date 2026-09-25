@@ -27,6 +27,9 @@ namespace etude {
         /// @brief Returns true once the user has asked to close the window, for example with the close button.
         bool shouldClose() const;
 
+        /// @brief Replaces the text in the title bar with UTF-8 text.
+        void setTitle(std::string_view title);
+
         /// @brief Returns the keyboard and mouse state of the current frame.
         const Input& input() const;
 

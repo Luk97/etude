@@ -218,6 +218,10 @@ namespace etude {
         return native->closeRequested;
     }
 
+    void Window::setTitle(std::string_view title) {
+        SetWindowTextW(native->handle, toWide(title).c_str());
+    }
+
     const Input& Window::input() const {
         return native->input;
     }
