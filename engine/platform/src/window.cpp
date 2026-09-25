@@ -16,6 +16,7 @@ namespace etude {
     struct Window::Native {
         HWND handle = nullptr;
         bool closeRequested = false;
+        Size clientSize;
         Input input;
 
         /// @brief Receives every message that Windows sends to the window.
@@ -135,6 +136,11 @@ namespace etude {
                 }
                 break;
 
+            case WM_SIZE:
+                // The client area shrinks to 0 x 0 while the window is minimized.
+                from(window).clientSize = {LOWORD(lParam), HIWORD(lParam)};
+                break;
+
             case WM_KILLFOCUS:
                 from(window).input.onFocusLost();
                 break;
@@ -220,6 +226,10 @@ namespace etude {
 
     void Window::setTitle(std::string_view title) {
         SetWindowTextW(native->handle, toWide(title).c_str());
+    }
+
+    Size Window::clientSize() const {
+        return native->clientSize;
     }
 
     const Input& Window::input() const {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <etude/core/size.h>
 #include <etude/platform/input.h>
 
 #include <memory>
@@ -36,6 +37,9 @@ namespace etude {
 
         /// @brief Replaces the text in the title bar with UTF-8 text.
         void setTitle(std::string_view title);
+
+        /// @brief Returns the size of the client area in physical pixels, 0 x 0 while the window is minimized.
+        Size clientSize() const;
 
         /// @brief Returns the keyboard and mouse state of the current frame.
         const Input& input() const;

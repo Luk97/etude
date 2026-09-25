@@ -1,16 +1,18 @@
 #include <etude/vulkan/vulkan_renderer.h>
 
 #include "vulkan_check.h"
+#include "vulkan_handles.h"
 #include "vulkan_surface.h"
+#include "vulkan_swapchain.h"
 
 #include <etude/core/log.h>
+#include <etude/platform/window.h>
 
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
 #include <string_view>
-#include <type_traits>
 #include <vector>
 
 #include <vulkan/vulkan.h>
@@ -51,45 +53,6 @@ namespace etude {
                 .pfnUserCallback = logValidationMessage
             };
         }
-
-        struct InstanceDeleter {
-            void operator()(VkInstance instance) const {
-                vkDestroyInstance(instance, nullptr);
-            }
-        };
-
-        /// @brief Destroys a debug messenger.
-        struct MessengerDeleter {
-            VkInstance instance = nullptr;
-
-            void operator()(VkDebugUtilsMessengerEXT messenger) const {
-                const auto destroy = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-                    vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT")
-                );
-                destroy(instance, messenger, nullptr);
-            }
-        };
-
-        struct SurfaceDeleter {
-            VkInstance instance = nullptr;
-
-            void operator()(VkSurfaceKHR surface) const {
-                vkDestroySurfaceKHR(instance, surface, nullptr);
-            }
-        };
-
-        struct DeviceDeleter {
-            void operator()(VkDevice device) const {
-                vkDestroyDevice(device, nullptr);
-            }
-        };
-
-        /// @brief On 64-bit platforms every Vulkan handle is a pointer to an opaque struct, so std::unique_ptr with
-        /// a deleter can own it and destroys it automatically.
-        using Instance = std::unique_ptr<std::remove_pointer_t<VkInstance>, InstanceDeleter>;
-        using Messenger = std::unique_ptr<std::remove_pointer_t<VkDebugUtilsMessengerEXT>, MessengerDeleter>;
-        using Surface = std::unique_ptr<std::remove_pointer_t<VkSurfaceKHR>, SurfaceDeleter>;
-        using Device = std::unique_ptr<std::remove_pointer_t<VkDevice>, DeviceDeleter>;
 
         /// @brief A graphics card that meets the requirements of the renderer, with the queue family it draws and
         /// presents with.
@@ -260,13 +223,13 @@ namespace etude {
 
         class VulkanRenderer : public Renderer {
         public:
-            explicit VulkanRenderer(const Window& window) : instance(createInstance()) {
+            explicit VulkanRenderer(const Window& window) : window(window), instance(createInstance()) {
                 if constexpr (validationEnabled) {
                     messenger = createMessenger(instance.get());
                 }
                 surface = Surface(createSurface(instance.get(), window), SurfaceDeleter{instance.get()});
 
-                const Gpu gpu = chooseGpu(instance.get(), surface.get());
+                gpu = chooseGpu(instance.get(), surface.get());
                 device = createDevice(gpu);
                 vkGetDeviceQueue(device.get(), gpu.queueFamily, 0, &queue);
 
@@ -279,12 +242,32 @@ namespace etude {
                 );
             }
 
+            /// @brief Keeps the swapchain matched to the window. A new window size needs a new swapchain, and a
+            /// minimized window gets none, because Vulkan cannot create a swapchain without area.
+            void render() override {
+                const Size size = window.clientSize();
+                if (size.width == 0 || size.height == 0 || (swapchain && swapchain->size == size)) {
+                    return;
+                }
+
+                // A surface belongs to one swapchain at a time, so the old one has to go before the new one exists.
+                swapchain.reset();
+                swapchain = createSwapchain(gpu.device, device.get(), surface.get(), size);
+                logInfo(
+                    "Swapchain {} x {} with {} images", swapchain->size.width, swapchain->size.height,
+                    swapchain->images.size()
+                );
+            }
+
         private:
+            const Window& window;
             Instance instance;
             Messenger messenger;
             Surface surface;
+            Gpu gpu;
             Device device;
             VkQueue queue = nullptr;
+            std::optional<VulkanSwapchain> swapchain;
         };
     }
 

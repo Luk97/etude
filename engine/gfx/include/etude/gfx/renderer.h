@@ -12,6 +12,10 @@ namespace etude {
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
 
+        /// @brief Draws the next frame into the window. Does nothing while the window has no area, for example
+        /// while it is minimized.
+        virtual void render() = 0;
+
     protected:
         Renderer() = default;
     };

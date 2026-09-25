@@ -34,6 +34,8 @@ namespace etude {
             steps += dueSteps;
             ++frames;
 
+            renderer->render();
+
             const double elapsed = secondClock.elapsedSeconds();
             if (elapsed >= 1.0) {
                 window.setTitle(
