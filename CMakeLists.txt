@@ -20,6 +20,8 @@ enable_testing()
 
 add_subdirectory(engine/core)
 add_subdirectory(engine/platform)
+add_subdirectory(engine/gfx)
+add_subdirectory(engine/vulkan)
 add_subdirectory(engine/runtime)
 add_subdirectory(apps/hello)
 add_subdirectory(tests)

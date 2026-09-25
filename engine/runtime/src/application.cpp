@@ -1,6 +1,7 @@
 #include <etude/runtime/application.h>
 
 #include <etude/core/clock.h>
+#include <etude/vulkan/vulkan_renderer.h>
 
 #include <format>
 
@@ -13,7 +14,8 @@ namespace etude {
     }
 
     Application::Application(std::string_view title, int width, int height)
-        : title(title), window(title, width, height), timestep(stepsPerSecond), limiter(initialFramesPerSecond) {}
+        : title(title), window(title, width, height), renderer(createVulkanRenderer()), timestep(stepsPerSecond),
+          limiter(initialFramesPerSecond) {}
 
     void Application::run() {
         Clock frameClock;

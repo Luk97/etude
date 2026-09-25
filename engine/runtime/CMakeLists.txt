@@ -13,4 +13,4 @@ target_sources(etude_runtime
         FILES ${headers}
 )
 target_compile_features(etude_runtime PUBLIC cxx_std_23)
-target_link_libraries(etude_runtime PUBLIC etude::core etude::platform PRIVATE etude::warnings)
+target_link_libraries(etude_runtime PUBLIC etude::core etude::gfx etude::platform PRIVATE etude::vulkan etude::warnings)
