@@ -7,6 +7,13 @@
 
 namespace etude {
 
+    /// @brief Untyped Win32 handles of a window: the instance of the program module and the window itself.
+    /// A graphics backend needs them to create the surface it draws on.
+    struct NativeHandles {
+        void* instance = nullptr;
+        void* window = nullptr;
+    };
+
     /// @brief A native window with title bar, frame and close button, built on the Win32 API.
     class Window {
     public:
@@ -32,6 +39,9 @@ namespace etude {
 
         /// @brief Returns the keyboard and mouse state of the current frame.
         const Input& input() const;
+
+        /// @brief Returns the native handles of the window, which only a graphics backend should need.
+        NativeHandles nativeHandles() const;
 
     private:
         /// @brief Win32 state and callbacks of the window, defined in window.cpp

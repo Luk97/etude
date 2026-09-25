@@ -1,13 +1,18 @@
 #include <etude/vulkan/vulkan_renderer.h>
 
+#include "vulkan_check.h"
+#include "vulkan_surface.h"
+
 #include <etude/core/log.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <optional>
 #include <string_view>
 #include <type_traits>
+#include <vector>
 
-#include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
 
 namespace etude {
@@ -19,14 +24,7 @@ namespace etude {
         constexpr bool validationEnabled = true;
 #endif
 
-        /// @brief Logs a fatal error and aborts the program if a Vulkan call did not succeed.
-        void check(VkResult result, std::string_view call) {
-            if (result != VK_SUCCESS) {
-                logFatal("{} failed with {}", call, string_VkResult(result));
-            }
-        }
-
-        /// @brief Forwards warnings and errors of the validatino layer to the ETUDE log.
+        /// @brief Forwards warnings and errors of the validation layer to the ETUDE log.
         VKAPI_ATTR VkBool32 VKAPI_CALL logValidationMessage(
             VkDebugUtilsMessageSeverityFlagBitsEXT severity,
             VkDebugUtilsMessageTypeFlagsEXT,
@@ -72,10 +70,33 @@ namespace etude {
             }
         };
 
+        struct SurfaceDeleter {
+            VkInstance instance = nullptr;
+
+            void operator()(VkSurfaceKHR surface) const {
+                vkDestroySurfaceKHR(instance, surface, nullptr);
+            }
+        };
+
+        struct DeviceDeleter {
+            void operator()(VkDevice device) const {
+                vkDestroyDevice(device, nullptr);
+            }
+        };
+
         /// @brief On 64-bit platforms every Vulkan handle is a pointer to an opaque struct, so std::unique_ptr with
         /// a deleter can own it and destroys it automatically.
         using Instance = std::unique_ptr<std::remove_pointer_t<VkInstance>, InstanceDeleter>;
         using Messenger = std::unique_ptr<std::remove_pointer_t<VkDebugUtilsMessengerEXT>, MessengerDeleter>;
+        using Surface = std::unique_ptr<std::remove_pointer_t<VkSurfaceKHR>, SurfaceDeleter>;
+        using Device = std::unique_ptr<std::remove_pointer_t<VkDevice>, DeviceDeleter>;
+
+        /// @brief A graphics card that meets the requirements of the renderer, with the queue family it draws and
+        /// presents with.
+        struct Gpu {
+            VkPhysicalDevice device = nullptr;
+            std::uint32_t queueFamily = 0;
+        };
 
         /// @brief Creates the connection to the Vulkan loader, with the validation layer in debug builds.
         Instance createInstance() {
@@ -86,7 +107,12 @@ namespace etude {
                 .apiVersion = VK_API_VERSION_1_3
             };
             const char* const layers[] = {"VK_LAYER_KHRONOS_validation"};
-            const char* const extensions[] = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+
+            // Surfaces need two instance extensions: a general one and one for the window system of the platform.
+            std::vector<const char*> extensions{VK_KHR_SURFACE_EXTENSION_NAME, surfaceExtensionName()};
+            if constexpr (validationEnabled) {
+                extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            }
 
             // Chained into the create info, the messenger also reports problems of vkCreateInstance itself.
             const VkDebugUtilsMessengerCreateInfoEXT messenger = messengerInfo();
@@ -96,8 +122,8 @@ namespace etude {
                 .pApplicationInfo = &application,
                 .enabledLayerCount = validationEnabled ? 1u : 0u,
                 .ppEnabledLayerNames = layers,
-                .enabledExtensionCount = validationEnabled ? 1u : 0u,
-                .ppEnabledExtensionNames = extensions
+                .enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
+                .ppEnabledExtensionNames = extensions.data()
             };
 
             VkInstance instance = nullptr;
@@ -117,28 +143,152 @@ namespace etude {
             return Messenger(messenger, MessengerDeleter{instance});
         }
 
+        /// @brief Returns the first queue family of the device that can both draw and present to the surface.
+        std::optional<std::uint32_t> findQueueFamily(VkPhysicalDevice device, VkSurfaceKHR surface) {
+            std::uint32_t count = 0;
+            vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
+            std::vector<VkQueueFamilyProperties> families(count);
+            vkGetPhysicalDeviceQueueFamilyProperties(device, &count, families.data());
+
+            for (std::uint32_t family = 0; family < count; ++family) {
+                VkBool32 presents = VK_FALSE;
+                check(
+                    vkGetPhysicalDeviceSurfaceSupportKHR(device, family, surface, &presents),
+                    "vkGetPhysicalDeviceSurfaceSupportKHR"
+                );
+                if ((families[family].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0 && presents == VK_TRUE) {
+                    return family;
+                }
+            }
+            return std::nullopt;
+        }
+
+        /// @brief Returns true if the device supports Vulkan 1.3 with dynamic rendering and synchronization2, and the
+        /// swapchain extension that shows images in a window.
+        bool meetsRequirements(VkPhysicalDevice device) {
+            VkPhysicalDeviceProperties properties{};
+            vkGetPhysicalDeviceProperties(device, &properties);
+            if (properties.apiVersion < VK_API_VERSION_1_3) {
+                return false;
+            }
+
+            std::uint32_t count = 0;
+            check(
+                vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr),
+                "vkEnumerateDeviceExtensionProperties"
+            );
+            std::vector<VkExtensionProperties> extensions(count);
+            check(
+                vkEnumerateDeviceExtensionProperties(device, nullptr, &count, extensions.data()),
+                "vkEnumerateDeviceExtensionProperties"
+            );
+            const bool swapchain = std::ranges::any_of(extensions, [](const VkExtensionProperties& extension) {
+                return std::string_view(extension.extensionName) == VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+            });
+
+            VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+            VkPhysicalDeviceFeatures2 features{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext = &features13
+            };
+            vkGetPhysicalDeviceFeatures2(device, &features);
+            return swapchain && features13.dynamicRendering == VK_TRUE && features13.synchronization2 == VK_TRUE;
+        }
+
+        /// @brief Picks the graphics card to render with. The first dedicated card wins, otherwise the first suitable
+        /// one, for example a graphics unit inside the processor.
+        Gpu chooseGpu(VkInstance instance, VkSurfaceKHR surface) {
+            std::uint32_t count = 0;
+            check(vkEnumeratePhysicalDevices(instance, &count, nullptr), "vkEnumeratePhysicalDevices");
+            std::vector<VkPhysicalDevice> devices(count);
+            check(vkEnumeratePhysicalDevices(instance, &count, devices.data()), "vkEnumeratePhysicalDevices");
+
+            std::optional<Gpu> fallback;
+            for (VkPhysicalDevice device : devices) {
+                const std::optional<std::uint32_t> family = findQueueFamily(device, surface);
+                if (!family || !meetsRequirements(device)) {
+                    continue;
+                }
+
+                VkPhysicalDeviceProperties properties{};
+                vkGetPhysicalDeviceProperties(device, &properties);
+                if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+                    return {device, *family};
+                }
+                if (!fallback) {
+                    fallback = Gpu{device, *family};
+                }
+            }
+
+            if (!fallback) {
+                logFatal(
+                    "No graphics card supports Vulkan 1.3 with dynamic rendering, synchronization2 and a swapchain."
+                );
+                std::abort();
+            }
+
+            return *fallback;
+        }
+
+        /// @brief Creates the logical device with one queue and the features that the renderer relies on.
+        Device createDevice(const Gpu& gpu) {
+            const float priority = 1.0f;
+            const VkDeviceQueueCreateInfo queue{
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .queueFamilyIndex = gpu.queueFamily,
+                .queueCount = 1,
+                .pQueuePriorities = &priority
+            };
+            const VkPhysicalDeviceVulkan13Features features{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+                .synchronization2 = VK_TRUE,
+                .dynamicRendering = VK_TRUE
+            };
+            const char* const extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+            const VkDeviceCreateInfo info{
+                .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                .pNext = &features,
+                .queueCreateInfoCount = 1,
+                .pQueueCreateInfos = &queue,
+                .enabledExtensionCount = 1,
+                .ppEnabledExtensionNames = extensions
+            };
+
+            VkDevice device = nullptr;
+            check(vkCreateDevice(gpu.device, &info, nullptr, &device), "vkCreateDevice");
+            return Device(device);
+        }
+
         class VulkanRenderer : public Renderer {
         public:
-            VulkanRenderer() : instance(createInstance()) {
+            explicit VulkanRenderer(const Window& window) : instance(createInstance()) {
                 if constexpr (validationEnabled) {
                     messenger = createMessenger(instance.get());
                 }
+                surface = Surface(createSurface(instance.get(), window), SurfaceDeleter{instance.get()});
 
-                std::uint32_t version = 0;
-                check(vkEnumerateInstanceVersion(&version), "vkEnumerateInstanceVersion");
+                const Gpu gpu = chooseGpu(instance.get(), surface.get());
+                device = createDevice(gpu);
+                vkGetDeviceQueue(device.get(), gpu.queueFamily, 0, &queue);
+
+                VkPhysicalDeviceProperties properties{};
+                vkGetPhysicalDeviceProperties(gpu.device, &properties);
                 logInfo(
-                    "Vulkan {}.{}.{} ready, validation {}", VK_API_VERSION_MAJOR(version),
-                    VK_API_VERSION_MINOR(version), VK_API_VERSION_PATCH(version), validationEnabled ? "on" : "off"
+                    "Vulkan {}.{}.{} ready, validation {}", VK_API_VERSION_MAJOR(properties.apiVersion),
+                    VK_API_VERSION_MINOR(properties.apiVersion), VK_API_VERSION_PATCH(properties.apiVersion),
+                    validationEnabled ? "on" : "off"
                 );
             }
 
         private:
             Instance instance;
             Messenger messenger;
+            Surface surface;
+            Device device;
+            VkQueue queue = nullptr;
         };
     }
 
-    std::unique_ptr<Renderer> createVulkanRenderer() {
-        return std::make_unique<VulkanRenderer>();
+    std::unique_ptr<Renderer> createVulkanRenderer(const Window& window) {
+        return std::make_unique<VulkanRenderer>(window);
     }
 }

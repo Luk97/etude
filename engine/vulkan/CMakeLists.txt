@@ -15,4 +15,4 @@ target_sources(etude_vulkan
         FILES ${headers}
 )
 target_compile_features(etude_vulkan PUBLIC cxx_std_23)
-target_link_libraries(etude_vulkan PUBLIC etude::gfx PRIVATE etude::core etude::warnings Vulkan::Vulkan)
+target_link_libraries(etude_vulkan PUBLIC etude::gfx PRIVATE etude::core etude::platform etude::warnings Vulkan::Vulkan)

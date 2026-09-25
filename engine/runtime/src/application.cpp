@@ -14,7 +14,7 @@ namespace etude {
     }
 
     Application::Application(std::string_view title, int width, int height)
-        : title(title), window(title, width, height), renderer(createVulkanRenderer()), timestep(stepsPerSecond),
+        : title(title), window(title, width, height), renderer(createVulkanRenderer(window)), timestep(stepsPerSecond),
           limiter(initialFramesPerSecond) {}
 
     void Application::run() {

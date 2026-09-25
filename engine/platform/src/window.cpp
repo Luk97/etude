@@ -225,4 +225,8 @@ namespace etude {
     const Input& Window::input() const {
         return native->input;
     }
+
+    NativeHandles Window::nativeHandles() const {
+        return {GetModuleHandleW(nullptr), native->handle};
+    }
 }
