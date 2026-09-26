@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vulkan_handles.h"
+#include "vulkan_semaphore.h"
 
 #include <etude/core/size.h>
 

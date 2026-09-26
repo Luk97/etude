@@ -39,9 +39,6 @@ namespace etude::vulkan {
 
     using SwapchainHandle = DeviceChild<VkSwapchainKHR, vkDestroySwapchainKHR>;
     using ImageView = DeviceChild<VkImageView, vkDestroyImageView>;
-    using Semaphore = DeviceChild<VkSemaphore, vkDestroySemaphore>;
-    using Fence = DeviceChild<VkFence, vkDestroyFence>;
-    using CommandPool = DeviceChild<VkCommandPool, vkDestroyCommandPool>;
     using ShaderModule = DeviceChild<VkShaderModule, vkDestroyShaderModule>;
     using PipelineLayout = DeviceChild<VkPipelineLayout, vkDestroyPipelineLayout>;
     using PipelineHandle = DeviceChild<VkPipeline, vkDestroyPipeline>;

@@ -1,11 +1,13 @@
 #include <etude/rendering/vulkan/vulkan_renderer.h>
 
 #include "vulkan_check.h"
+#include "vulkan_command_buffer.h"
+#include "vulkan_command_pool.h"
 #include "vulkan_context.h"
-#include "vulkan_handles.h"
+#include "vulkan_fence.h"
+#include "vulkan_frame.h"
 #include "vulkan_pipeline.h"
 #include "vulkan_swapchain.h"
-#include "vulkan_sync.h"
 
 #include <etude/core/log.h>
 #include <etude/platform/window.h>
@@ -21,47 +23,6 @@
 namespace etude::vulkan {
 
     namespace {
-
-        /// @brief The CPU records one frame while the GPU still renders the other. More frames would only add latency.
-        constexpr std::size_t framesInFlight = 2;
-
-        /// @brief The objects of one frame in flight. Each frame needs its own, because the GPU may still use those
-        /// of the other frame.
-        struct Frame {
-            VkCommandBuffer commands = nullptr;
-            Semaphore imageAvailable;
-            Fence inFlight;
-        };
-
-        /// @brief Creates the pool for the command buffers. It allows resetting single buffers, because every
-        /// frame records its own buffer anew.
-        CommandPool createCommandPool(VkDevice device, std::uint32_t queueFamily) {
-            const VkCommandPoolCreateInfo info{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-                .queueFamilyIndex = queueFamily,
-            };
-
-            VkCommandPool pool = nullptr;
-            check(vkCreateCommandPool(device, &info, nullptr, &pool), "vkCreateCommandPool");
-            return CommandPool(pool, {device});
-        }
-
-        Frame createFrame(VkDevice device, VkCommandPool pool) {
-            Frame frame;
-            const VkCommandBufferAllocateInfo allocation{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                .commandPool = pool,
-                .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                .commandBufferCount = 1,
-            };
-            check(vkAllocateCommandBuffers(device, &allocation, &frame.commands), "vkAllocateCommandBuffers");
-            frame.imageAvailable = createSemaphore(device);
-
-            // Signaled from the start, so that the first frame does not wait for a frame that never ran.
-            frame.inFlight = createFence(device, VK_FENCE_CREATE_SIGNALED_BIT);
-            return frame;
-        }
 
         /// @brief The single color layer of a swapchain image.
         constexpr VkImageSubresourceRange colorLayer{
@@ -112,8 +73,7 @@ namespace etude::vulkan {
 
                 // The objects of a frame are free again once the GPU has finished the frame that used them last.
                 Frame& frame = frames[frameIndex];
-                const VkFence fence = frame.inFlight.get();
-                check(vkWaitForFences(context.device.get(), 1, &fence, VK_TRUE, noTimeout), "vkWaitForFences");
+                waitForFence(context.device.get(), frame.inFlight.get());
 
                 std::uint32_t imageIndex = 0;
                 const VkResult acquired = vkAcquireNextImageKHR(
@@ -127,7 +87,7 @@ namespace etude::vulkan {
                 if (acquired != VK_SUBOPTIMAL_KHR) {
                     check(acquired, "vkAcquireNextImageKHR");
                 }
-                check(vkResetFences(context.device.get(), 1, &fence), "vkResetFences");
+                resetFence(context.device.get(), frame.inFlight.get());
 
                 record(frame.commands, imageIndex);
                 submit(frame, imageIndex);
@@ -169,12 +129,7 @@ namespace etude::vulkan {
             /// @brief Records the commands for one frame: make the image a color target, clear it, draw the triangle
             /// and hand it over for presenting.
             void record(VkCommandBuffer commands, std::uint32_t imageIndex) const {
-                check(vkResetCommandBuffer(commands, 0), "vkResetCommandBuffer");
-                const VkCommandBufferBeginInfo begin{
-                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                    .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-                };
-                check(vkBeginCommandBuffer(commands, &begin), "vkBeginCommandBuffer");
+                beginCommands(commands);
 
                 // The old content does not matter, so the image goes from UNDEFINED to a color target.
                 // The barrier waits in the stage in which the submit waits for the acquired image.
@@ -246,7 +201,7 @@ namespace etude::vulkan {
                 };
                 recordImageBarrier(commands, toPresent);
 
-                check(vkEndCommandBuffer(commands), "vkEndCommandBuffer");
+                endCommands(commands);
             }
 
             /// @brief Sends the recorded commands to the GPU. They start drawing once the image is acquired, then
@@ -257,25 +212,12 @@ namespace etude::vulkan {
                     .semaphore = frame.imageAvailable.get(),
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                 };
-                const VkCommandBufferSubmitInfo commands{
-                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                    .commandBuffer = frame.commands,
-                };
                 const VkSemaphoreSubmitInfo signal{
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                     .semaphore = swapchain->renderFinished[imageIndex].get(),
                     .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                 };
-                const VkSubmitInfo2 info{
-                    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-                    .waitSemaphoreInfoCount = 1,
-                    .pWaitSemaphoreInfos = &wait,
-                    .commandBufferInfoCount = 1,
-                    .pCommandBufferInfos = &commands,
-                    .signalSemaphoreInfoCount = 1,
-                    .pSignalSemaphoreInfos = &signal,
-                };
-                check(vkQueueSubmit2(context.queue, 1, &info, frame.inFlight.get()), "vkQueueSubmit2");
+                submitCommands(context.queue, frame.commands, wait, signal, frame.inFlight.get());
             }
 
             /// @brief Shows the image in the window once rendering has finished.

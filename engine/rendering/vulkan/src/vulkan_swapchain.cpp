@@ -1,7 +1,7 @@
 #include "vulkan_swapchain.h"
 
 #include "vulkan_check.h"
-#include "vulkan_sync.h"
+#include "vulkan_semaphore.h"
 
 #include <algorithm>
 #include <cstdint>
