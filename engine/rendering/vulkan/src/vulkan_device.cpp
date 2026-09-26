@@ -13,6 +13,7 @@
 namespace etude::vulkan {
 
     namespace {
+
         /// @brief Returns the first queue family of the device that can both draw and present to the surface.
         std::optional<std::uint32_t> findQueueFamily(VkPhysicalDevice device, VkSurfaceKHR surface) {
             std::uint32_t count = 0;

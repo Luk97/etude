@@ -7,6 +7,7 @@
 
 namespace etude::vulkan {
 
+    /// @brief Validation checks every Vulkan call but costs time, so only debug builds switch it on.
 #ifdef NDEBUG
     inline constexpr bool validationEnabled = false;
 #else
@@ -30,6 +31,6 @@ namespace etude::vulkan {
     /// @brief Describes which validation messages reach the log.
     VkDebugUtilsMessengerCreateInfoEXT messengerInfo();
 
-    /// @brief Creates the messenger that routes validation messenges to the log for the lifetime of the instance.
+    /// @brief Creates the messenger that routes validation messages to the log for the lifetime of the instance.
     Messenger createMessenger(VkInstance instance);
 }
