@@ -1,7 +1,7 @@
 #pragma once
 
-#include <etude/core/color.h>
 #include <etude/core/fixed_timestep.h>
+#include <etude/math/color.h>
 #include <etude/platform/frame_limiter.h>
 #include <etude/platform/input.h>
 #include <etude/platform/window.h>

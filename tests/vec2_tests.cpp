@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <etude/core/vec2.h>
+#include <etude/math/vec2.h>
 
 using etude::Vec2;
 

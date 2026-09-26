@@ -4,7 +4,7 @@
 #include "vulkan_image.h"
 #include "vulkan_semaphore.h"
 
-#include <etude/core/size.h>
+#include <etude/math/size.h>
 
 #include <cstdint>
 #include <optional>

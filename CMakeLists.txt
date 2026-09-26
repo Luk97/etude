@@ -19,6 +19,7 @@ endif()
 enable_testing()
 
 add_subdirectory(engine/core)
+add_subdirectory(engine/math)
 add_subdirectory(engine/platform)
 add_subdirectory(engine/rendering)
 add_subdirectory(engine/runtime)

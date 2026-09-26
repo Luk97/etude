@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etude/core/size.h>
+#include <etude/math/size.h>
 #include <etude/platform/input.h>
 
 #include <memory>

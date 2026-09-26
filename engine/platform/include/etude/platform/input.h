@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etude/core/vec2.h>
+#include <etude/math/vec2.h>
 
 #include <array>
 #include <cstddef>

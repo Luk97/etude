@@ -14,4 +14,4 @@ target_sources(etude_platform
 )
 target_compile_features(etude_platform PUBLIC cxx_std_23)
 target_compile_definitions(etude_platform PRIVATE UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
-target_link_libraries(etude_platform PUBLIC etude::core PRIVATE etude::warnings user32)
+target_link_libraries(etude_platform PUBLIC etude::core etude::math PRIVATE etude::warnings user32)

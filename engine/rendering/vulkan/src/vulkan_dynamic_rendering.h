@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etude/core/color.h>
+#include <etude/math/color.h>
 
 #include <vulkan/vulkan.h>
 

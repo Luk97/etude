@@ -15,7 +15,7 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS *.cpp *.h)
 
 add_executable(etude_tests ${sources})
 target_compile_features(etude_tests PRIVATE cxx_std_23)
-target_link_libraries(etude_tests PRIVATE etude::core etude::platform etude::warnings Catch2::Catch2WithMain)
+target_link_libraries(etude_tests PRIVATE etude::core etude::math etude::platform etude::warnings Catch2::Catch2WithMain)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
