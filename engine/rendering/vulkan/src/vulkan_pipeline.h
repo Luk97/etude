@@ -6,6 +6,9 @@
 
 namespace etude::vulkan {
 
+    using PipelineLayout = DeviceChild<VkPipelineLayout, vkDestroyPipelineLayout>;
+    using PipelineHandle = DeviceChild<VkPipeline, vkDestroyPipeline>;
+
     /// @brief A graphics pipeline with its layout. The members are destroyed in reverse order, so the pipeline
     /// goes before its layout.
     struct Pipeline {

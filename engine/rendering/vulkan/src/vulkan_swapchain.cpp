@@ -12,6 +12,8 @@ namespace etude::vulkan {
 
     namespace {
 
+        constexpr std::uint64_t noTimeout = std::numeric_limits<std::uint64_t>::max();
+
         /// @brief Returns the size of the images. Most window systems dictate it through currentExtent, the special
         /// value 0xFFFFFFFF leaves the choice to the swapchain within the allowed range.
         VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR& capabilities, Size windowSize) {
@@ -35,24 +37,6 @@ namespace etude::vulkan {
         std::uint32_t chooseImageCount(const VkSurfaceCapabilitiesKHR& capabilities) {
             const std::uint32_t count = capabilities.minImageCount + 1;
             return capabilities.maxImageCount == 0 ? count : std::min(count, capabilities.maxImageCount);
-        }
-
-        ImageView createImageView(VkDevice device, VkImage image, VkFormat format) {
-            const VkImageViewCreateInfo info{
-                .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                .image = image,
-                .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                .format = format,
-                .subresourceRange = {
-                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .levelCount = 1,
-                    .layerCount = 1,
-                },
-            };
-
-            VkImageView view = nullptr;
-            check(vkCreateImageView(device, &info, nullptr, &view), "vkCreateImageView");
-            return ImageView(view, {device});
         }
     }
 
@@ -126,5 +110,39 @@ namespace etude::vulkan {
             swapchain.renderFinished.push_back(createSemaphore(device));
         }
         return swapchain;
+    }
+
+    std::optional<std::uint32_t> acquireImage(VkDevice device, const Swapchain& swapchain, VkSemaphore imageAvailable) {
+        std::uint32_t index = 0;
+        const VkResult result =
+            vkAcquireNextImageKHR(device, swapchain.handle.get(), noTimeout, imageAvailable, nullptr, &index);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            return std::nullopt;
+        }
+
+        // A suboptimal swapchain can still show the image, presenting reports it again and triggers the rebuild.
+        if (result != VK_SUBOPTIMAL_KHR) {
+            check(result, "vkAcquireNextImageKHR");
+        }
+        return index;
+    }
+
+    bool presentImage(VkQueue queue, const Swapchain& swapchain, std::uint32_t imageIndex) {
+        const VkSemaphore wait = swapchain.renderFinished[imageIndex].get();
+        const VkSwapchainKHR handle = swapchain.handle.get();
+        const VkPresentInfoKHR info{
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &wait,
+            .swapchainCount = 1,
+            .pSwapchains = &handle,
+            .pImageIndices = &imageIndex,
+        };
+        const VkResult result = vkQueuePresentKHR(queue, &info);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            return false;
+        }
+        check(result, "vkQueuePresentKHR");
+        return true;
     }
 }

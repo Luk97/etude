@@ -36,10 +36,4 @@ namespace etude::vulkan {
 
     template <typename Handle, auto destroy>
     using DeviceChild = std::unique_ptr<std::remove_pointer_t<Handle>, ChildDeleter<VkDevice, Handle, destroy>>;
-
-    using SwapchainHandle = DeviceChild<VkSwapchainKHR, vkDestroySwapchainKHR>;
-    using ImageView = DeviceChild<VkImageView, vkDestroyImageView>;
-    using ShaderModule = DeviceChild<VkShaderModule, vkDestroyShaderModule>;
-    using PipelineLayout = DeviceChild<VkPipelineLayout, vkDestroyPipelineLayout>;
-    using PipelineHandle = DeviceChild<VkPipeline, vkDestroyPipeline>;
 }
