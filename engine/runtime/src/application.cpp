@@ -1,7 +1,7 @@
 #include <etude/runtime/application.h>
 
 #include <etude/core/clock.h>
-#include <etude/vulkan/vulkan_renderer.h>
+#include <etude/rendering/vulkan/vulkan_renderer.h>
 
 #include <format>
 

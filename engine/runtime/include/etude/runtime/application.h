@@ -2,10 +2,10 @@
 
 #include <etude/core/color.h>
 #include <etude/core/fixed_timestep.h>
-#include <etude/gfx/renderer.h>
 #include <etude/platform/frame_limiter.h>
 #include <etude/platform/input.h>
 #include <etude/platform/window.h>
+#include <etude/rendering/renderer.h>
 
 #include <memory>
 #include <string>

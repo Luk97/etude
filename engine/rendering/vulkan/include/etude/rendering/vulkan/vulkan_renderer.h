@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etude/gfx/renderer.h>
+#include <etude/rendering/renderer.h>
 
 #include <memory>
 

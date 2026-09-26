@@ -1,4 +1,4 @@
-#include <etude/vulkan/vulkan_renderer.h>
+#include <etude/rendering/vulkan/vulkan_renderer.h>
 
 #include "vulkan_check.h"
 #include "vulkan_handles.h"
