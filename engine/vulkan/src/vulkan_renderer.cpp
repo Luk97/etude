@@ -50,7 +50,7 @@ namespace etude {
                 .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                                VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-                .pfnUserCallback = logValidationMessage
+                .pfnUserCallback = logValidationMessage,
             };
         }
 
@@ -67,7 +67,7 @@ namespace etude {
                 .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
                 .pApplicationName = "ETUDE",
                 .pEngineName = "ETUDE",
-                .apiVersion = VK_API_VERSION_1_3
+                .apiVersion = VK_API_VERSION_1_3,
             };
             const char* const layers[] = {"VK_LAYER_KHRONOS_validation"};
 
@@ -86,7 +86,7 @@ namespace etude {
                 .enabledLayerCount = validationEnabled ? 1u : 0u,
                 .ppEnabledLayerNames = layers,
                 .enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
-                .ppEnabledExtensionNames = extensions.data()
+                .ppEnabledExtensionNames = extensions.data(),
             };
 
             VkInstance instance = nullptr;
@@ -149,9 +149,12 @@ namespace etude {
                 return std::string_view(extension.extensionName) == VK_KHR_SWAPCHAIN_EXTENSION_NAME;
             });
 
-            VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+            VkPhysicalDeviceVulkan13Features features13{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            };
             VkPhysicalDeviceFeatures2 features{
-                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext = &features13
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+                .pNext = &features13,
             };
             vkGetPhysicalDeviceFeatures2(device, &features);
             return swapchain && features13.dynamicRendering == VK_TRUE && features13.synchronization2 == VK_TRUE;
@@ -199,12 +202,12 @@ namespace etude {
                 .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                 .queueFamilyIndex = gpu.queueFamily,
                 .queueCount = 1,
-                .pQueuePriorities = &priority
+                .pQueuePriorities = &priority,
             };
             const VkPhysicalDeviceVulkan13Features features{
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
                 .synchronization2 = VK_TRUE,
-                .dynamicRendering = VK_TRUE
+                .dynamicRendering = VK_TRUE,
             };
             const char* const extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
             const VkDeviceCreateInfo info{
@@ -213,7 +216,7 @@ namespace etude {
                 .queueCreateInfoCount = 1,
                 .pQueueCreateInfos = &queue,
                 .enabledExtensionCount = 1,
-                .ppEnabledExtensionNames = extensions
+                .ppEnabledExtensionNames = extensions,
             };
 
             VkDevice device = nullptr;

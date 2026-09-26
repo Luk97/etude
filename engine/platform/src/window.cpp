@@ -49,7 +49,7 @@ namespace etude {
                 .lpfnWndProc = windowProcedure,
                 .hInstance = GetModuleHandleW(nullptr),
                 .hCursor = LoadCursorW(nullptr, IDC_ARROW),
-                .lpszClassName = L"EtudeWindow"
+                .lpszClassName = L"EtudeWindow",
             };
             RegisterClassExW(&windowClass);
 

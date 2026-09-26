@@ -22,7 +22,7 @@ namespace etude {
         const VkWin32SurfaceCreateInfoKHR info{
             .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
             .hinstance = static_cast<HINSTANCE>(handles.instance),
-            .hwnd = static_cast<HWND>(handles.window)
+            .hwnd = static_cast<HWND>(handles.window),
         };
 
         VkSurfaceKHR surface = nullptr;

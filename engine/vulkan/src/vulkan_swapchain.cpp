@@ -63,7 +63,11 @@ namespace etude {
                 .image = image,
                 .viewType = VK_IMAGE_VIEW_TYPE_2D,
                 .format = format,
-                .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1}
+                .subresourceRange = {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .levelCount = 1,
+                    .layerCount = 1,
+                },
             };
 
             VkImageView view = nullptr;
@@ -100,7 +104,7 @@ namespace etude {
             .preTransform = capabilities.currentTransform,
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode = VK_PRESENT_MODE_FIFO_KHR,
-            .clipped = VK_TRUE
+            .clipped = VK_TRUE,
         };
 
         VkSwapchainKHR handle = nullptr;
@@ -109,7 +113,10 @@ namespace etude {
         VulkanSwapchain swapchain{
             .handle = SwapchainHandle(handle, SwapchainDeleter{device}),
             .format = format.format,
-            .size = {static_cast<int>(extent.width), static_cast<int>(extent.height)}
+            .size = {
+                static_cast<int>(extent.width),
+                static_cast<int>(extent.height),
+            },
         };
 
         std::uint32_t count = 0;
