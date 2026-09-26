@@ -9,13 +9,19 @@ namespace etude {
 
     namespace {
 
+#ifdef __INTELLISENSE__
+        // IntelliSense ignores an #include inside an initializer (vscode-cpptools issue 13735), so it gets stand-ins.
+        constexpr std::uint32_t vertexShader[] = {0};
+        constexpr std::uint32_t fragmentShader[] = {0};
+#else
         // glslc turns the shaders into C initializer lists of SPIR-V words during the build.
         constexpr std::uint32_t vertexShader[] =
-#include "vulkan_triangle.vert.inc"
+    #include "vulkan_triangle.vert.inc"
             ;
         constexpr std::uint32_t fragmentShader[] =
-#include "vulkan_triangle.frag.inc"
+    #include "vulkan_triangle.frag.inc"
             ;
+#endif
 
         ShaderModule createShaderModule(VkDevice device, std::span<const std::uint32_t> code) {
             const VkShaderModuleCreateInfo info{
