@@ -11,7 +11,7 @@
 namespace etude {
 
     /// @brief A swapchain with its images and one view per image, ready to be rendered into.
-    /// The members are destroyed in reverse order, so the view go before the swapchain that own their images.
+    /// The members are destroyed in reverse order, so the views go before the swapchain that owns their images.
     struct VulkanSwapchain {
         SwapchainHandle handle;
         std::vector<VkImage> images;
