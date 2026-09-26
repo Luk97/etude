@@ -34,8 +34,8 @@ namespace etude::vulkan {
             return std::nullopt;
         }
 
-        /// @brief Returns true if the device supports Vulkan 1.3 with dynamic rendering and synchronization2, and the
-        /// swapchain extension that shows images in a window.
+        /// @brief Returns true if the device supports Vulkan 1.3 with dynamic rendering and synchronization2, buffer
+        /// device addresses with the scalar block layout, and the swapchain extension that shows images in a window.
         bool meetsRequirements(VkPhysicalDevice device) {
             VkPhysicalDeviceProperties properties{};
             vkGetPhysicalDeviceProperties(device, &properties);
@@ -57,15 +57,21 @@ namespace etude::vulkan {
                 return std::string_view(extension.extensionName) == VK_KHR_SWAPCHAIN_EXTENSION_NAME;
             });
 
+            VkPhysicalDeviceVulkan12Features features12{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            };
             VkPhysicalDeviceVulkan13Features features13{
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+                .pNext = &features12,
             };
             VkPhysicalDeviceFeatures2 features{
                 .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
                 .pNext = &features13,
             };
             vkGetPhysicalDeviceFeatures2(device, &features);
-            return swapchain && features13.dynamicRendering == VK_TRUE && features13.synchronization2 == VK_TRUE;
+
+            return swapchain && features13.dynamicRendering == VK_TRUE && features13.synchronization2 == VK_TRUE &&
+                   features12.bufferDeviceAddress == VK_TRUE && features12.scalarBlockLayout == VK_TRUE;
         }
     }
 
@@ -93,7 +99,10 @@ namespace etude::vulkan {
         }
 
         if (!fallback) {
-            logFatal("No graphics card supports Vulkan 1.3 with dynamic rendering, synchronization2 and a swapchain.");
+            logFatal(
+                "No graphics card supports Vulkan 1.3 with dynamic rendering, synchronization2, buffer device "
+                "addresses, the scalar block layout and a swapchain."
+            );
             std::abort();
         }
 
@@ -108,15 +117,21 @@ namespace etude::vulkan {
             .queueCount = 1,
             .pQueuePriorities = &priority,
         };
-        const VkPhysicalDeviceVulkan13Features features{
+        VkPhysicalDeviceVulkan12Features features12{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .scalarBlockLayout = VK_TRUE,
+            .bufferDeviceAddress = VK_TRUE,
+        };
+        const VkPhysicalDeviceVulkan13Features features13{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .pNext = &features12,
             .synchronization2 = VK_TRUE,
             .dynamicRendering = VK_TRUE,
         };
         const char* const extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
         const VkDeviceCreateInfo info{
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            .pNext = &features,
+            .pNext = &features13,
             .queueCreateInfoCount = 1,
             .pQueueCreateInfos = &queue,
             .enabledExtensionCount = 1,

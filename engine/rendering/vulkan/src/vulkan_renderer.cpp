@@ -1,5 +1,6 @@
 #include <etude/rendering/vulkan/vulkan_renderer.h>
 
+#include "vulkan_buffer.h"
 #include "vulkan_check.h"
 #include "vulkan_command_buffer.h"
 #include "vulkan_command_pool.h"
@@ -17,6 +18,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <optional>
 
 #include <vulkan/vulkan.h>
@@ -25,12 +27,35 @@ namespace etude::vulkan {
 
     namespace {
 
+        /// @brief The corners of the triangle in clip space, where y points down, with their colors.
+        constexpr std::array triangleCorners{
+            TriangleVertex{
+                .position = {0.0f, -0.5f},
+                .color = {.r = 1.0f},
+            },
+            TriangleVertex{
+                .position = {0.5f, 0.5f},
+                .color = {.g = 1.0f},
+            },
+            TriangleVertex{
+                .position = {-0.5f, 0.5f},
+                .color = {.b = 1.0f},
+            },
+        };
+
         class Renderer final : public etude::Renderer {
         public:
             explicit Renderer(const Window& window) : window(window), context(createContext(window)) {
                 // The surface keeps its format, so one pipeline serves every swapchain that is created later.
                 surfaceFormat = chooseSurfaceFormat(context.gpu.device, context.surface.get());
                 pipeline = createTrianglePipeline(context.device.get(), surfaceFormat.format);
+
+                // The CPU writes the corners once, the vertex shader reads them through the address of the buffer.
+                triangle = createBuffer(
+                    context.gpu.device, context.device.get(), sizeof(triangleCorners),
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, MemoryAccess::CpuWrite
+                );
+                std::memcpy(triangle.allocation.mapped, triangleCorners.data(), sizeof(triangleCorners));
 
                 commandPool = createCommandPool(context.device.get(), context.gpu.queueFamily);
                 for (Frame& frame : frames) {
@@ -115,8 +140,13 @@ namespace etude::vulkan {
                 transitionToColorTarget(commands, image);
                 beginRendering(commands, swapchain->views[imageIndex].get(), area, clearColor);
 
-                // Three vertices without a vertex buffer, the vertex shader looks up each corner by its index.
+                // Three vertices without a vertex buffer, the vertex shader fetches each corner by its index from
+                // the buffer whose address it gets as a push constant.
                 vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle.get());
+                vkCmdPushConstants(
+                    commands, pipeline.layout.get(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VkDeviceAddress),
+                    &triangle.address
+                );
                 vkCmdDraw(commands, 3, 1, 0, 0);
 
                 endRendering(commands);
@@ -144,6 +174,7 @@ namespace etude::vulkan {
             Context context;
             VkSurfaceFormatKHR surfaceFormat{};
             Pipeline pipeline;
+            Buffer triangle;
             CommandPool commandPool;
             std::array<Frame, framesInFlight> frames;
             std::size_t frameIndex = 0;

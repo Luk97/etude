@@ -23,10 +23,17 @@ namespace etude::vulkan {
             ;
 #endif
 
-        /// @brief Creates an empty layout, because the triangle shaders read neither descriptors nor push constants.
+        /// @brief Creates a layout with one push constant for the vertex shader: the address of the buffer with the
+        /// corners of the triangle.
         PipelineLayout createPipelineLayout(VkDevice device) {
+            const VkPushConstantRange address{
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                .size = sizeof(VkDeviceAddress),
+            };
             const VkPipelineLayoutCreateInfo info{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                .pushConstantRangeCount = 1,
+                .pPushConstantRanges = &address,
             };
 
             VkPipelineLayout layout = nullptr;
@@ -54,7 +61,7 @@ namespace etude::vulkan {
             },
         };
 
-        // The vertex shader carries the corners itself, so there is no vertex input.
+        // The vertex shader reads the corners through a buffer address, so there is no vertex input.
         const VkPipelineVertexInputStateCreateInfo vertexInput{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         };
