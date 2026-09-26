@@ -100,8 +100,8 @@ namespace etude::vulkan {
 
         if (!fallback) {
             logFatal(
-                "No graphics card supports Vulkan 1.3 with dynamic rendering, synchronization2, buffer device "
-                "addresses, the scalar block layout and a swapchain."
+                "No graphics card supports Vulkan 1.3 with dynamic rendering, synchronization2, "
+                "buffer device addresses, the scalar block layout and a swapchain."
             );
             std::abort();
         }

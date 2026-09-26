@@ -17,8 +17,8 @@ namespace etude::vulkan {
         CpuWrite,
     };
 
-    /// @brief The memory of one resource. For now every resource gets an allocation of its own. Later the allocator
-    /// can hand out ranges of large blocks, which is why resources bind their memory at an offset.
+    /// @brief The memory of one resource. For now every resource gets an allocation of its own. Later the allocator can
+    /// hand out ranges of large blocks, which is why resources bind their memory at an offset.
     struct Allocation {
         Memory memory;
         VkDeviceSize offset = 0;

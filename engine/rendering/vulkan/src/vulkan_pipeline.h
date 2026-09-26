@@ -19,8 +19,8 @@ namespace etude::vulkan {
         PipelineHandle handle;
     };
 
-    /// @brief A corner of the triangle as the vertex shader reads it. The shader uses the scalar block layout, so
-    /// the fields follow each other without gaps, just like here.
+    /// @brief A corner of the triangle as the vertex shader reads it. The shader uses the scalar block layout, so the
+    /// fields follow each other without gaps, just like here.
     struct TriangleVertex {
         Vec2 position;
         Color color;

@@ -11,6 +11,7 @@ namespace etude::vulkan {
 
     namespace {
 
+        /// @brief Returns the first memory type that the resource allows and that has all the wanted properties.
         std::uint32_t findMemoryType(
             VkPhysicalDevice physicalDevice,
             std::uint32_t allowedTypes,

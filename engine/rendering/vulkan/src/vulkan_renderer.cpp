@@ -140,8 +140,8 @@ namespace etude::vulkan {
                 transitionToColorTarget(commands, image);
                 beginRendering(commands, swapchain->views[imageIndex].get(), area, clearColor);
 
-                // Three vertices without a vertex buffer, the vertex shader fetches each corner by its index from
-                // the buffer whose address it gets as a push constant.
+                // Three vertices without a vertex buffer, the vertex shader fetches each corner by its index from the
+                // buffer whose address it gets as a push constant.
                 vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle.get());
                 vkCmdPushConstants(
                     commands, pipeline.layout.get(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VkDeviceAddress),
