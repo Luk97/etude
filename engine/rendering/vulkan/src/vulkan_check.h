@@ -8,7 +8,7 @@
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
 
-namespace etude {
+namespace etude::vulkan {
 
     /// @brief Logs a fatal error and aborts the program if a Vulkan call did not succeed.
     inline void check(VkResult result, std::string_view call) {

@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace etude {
+namespace etude::vulkan {
 
     /// @brief Creates a semaphore, which orders work between operations on the GPU.
     Semaphore createSemaphore(VkDevice device);

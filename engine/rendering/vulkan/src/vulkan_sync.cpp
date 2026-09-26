@@ -2,7 +2,7 @@
 
 #include "vulkan_check.h"
 
-namespace etude {
+namespace etude::vulkan {
 
     Semaphore createSemaphore(VkDevice device) {
         const VkSemaphoreCreateInfo info{
@@ -11,7 +11,7 @@ namespace etude {
 
         VkSemaphore semaphore = nullptr;
         check(vkCreateSemaphore(device, &info, nullptr, &semaphore), "vkCreateSemaphore");
-        return Semaphore(semaphore, SemaphoreDeleter{device});
+        return Semaphore(semaphore, {device});
     }
 
     Fence createFence(VkDevice device, VkFenceCreateFlags flags) {
@@ -22,6 +22,6 @@ namespace etude {
 
         VkFence fence = nullptr;
         check(vkCreateFence(device, &info, nullptr, &fence), "vkCreateFence");
-        return Fence(fence, FenceDeleter{device});
+        return Fence(fence, {device});
     }
 }

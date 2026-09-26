@@ -8,11 +8,11 @@
 
 #include <vulkan/vulkan.h>
 
-namespace etude {
+namespace etude::vulkan {
 
     /// @brief A swapchain with its images and one view per image, ready to be rendered into.
     /// The members are destroyed in reverse order, so the views go before the swapchain that owns their images.
-    struct VulkanSwapchain {
+    struct Swapchain {
         SwapchainHandle handle;
         std::vector<VkImage> images;
         std::vector<ImageView> views;
@@ -29,7 +29,7 @@ namespace etude {
     VkSurfaceFormatKHR chooseSurfaceFormat(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
     /// @brief Creates a swapchain for the surface with images of the given format that fit a window of the given size.
-    VulkanSwapchain createSwapchain(
+    Swapchain createSwapchain(
         VkPhysicalDevice physicalDevice,
         VkDevice device,
         VkSurfaceKHR surface,

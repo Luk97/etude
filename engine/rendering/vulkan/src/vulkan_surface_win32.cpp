@@ -11,7 +11,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace etude {
+namespace etude::vulkan {
 
     const char* surfaceExtensionName() {
         return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;

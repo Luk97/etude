@@ -22,7 +22,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace etude {
+namespace etude::vulkan {
 
     namespace {
 #ifdef NDEBUG
@@ -251,7 +251,7 @@ namespace etude {
 
             VkCommandPool pool = nullptr;
             check(vkCreateCommandPool(device, &info, nullptr, &pool), "vkCreateCommandPool");
-            return CommandPool(pool, CommandPoolDeleter{device});
+            return CommandPool(pool, {device});
         }
 
         Frame createFrame(VkDevice device, VkCommandPool pool) {
@@ -287,13 +287,13 @@ namespace etude {
             vkCmdPipelineBarrier2(commands, &dependency);
         }
 
-        class VulkanRenderer : public Renderer {
+        class Renderer final : public etude::Renderer {
         public:
-            explicit VulkanRenderer(const Window& window) : window(window), instance(createInstance()) {
+            explicit Renderer(const Window& window) : window(window), instance(createInstance()) {
                 if constexpr (validationEnabled) {
                     messenger = createMessenger(instance.get());
                 }
-                surface = Surface(createSurface(instance.get(), window), SurfaceDeleter{instance.get()});
+                surface = Surface(createSurface(instance.get(), window), {instance.get()});
 
                 gpu = chooseGpu(instance.get(), surface.get());
                 device = createDevice(gpu);
@@ -319,7 +319,7 @@ namespace etude {
 
             /// @brief Waits for the GPU first, because the last frames may still use the objects that are destroyed
             /// afterwards.
-            ~VulkanRenderer() override {
+            ~Renderer() override {
                 vkDeviceWaitIdle(device.get());
             }
 
@@ -522,16 +522,19 @@ namespace etude {
             Device device;
             VkQueue queue = nullptr;
             VkSurfaceFormatKHR surfaceFormat{};
-            VulkanPipeline pipeline;
+            Pipeline pipeline;
             CommandPool commandPool;
             std::array<Frame, framesInFlight> frames;
             std::size_t frameIndex = 0;
-            std::optional<VulkanSwapchain> swapchain;
+            std::optional<Swapchain> swapchain;
             Color clearColor;
         };
     }
+}
+
+namespace etude {
 
     std::unique_ptr<Renderer> createVulkanRenderer(const Window& window) {
-        return std::make_unique<VulkanRenderer>(window);
+        return std::make_unique<vulkan::Renderer>(window);
     }
 }

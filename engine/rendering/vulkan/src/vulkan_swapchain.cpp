@@ -8,7 +8,7 @@
 #include <limits>
 #include <vector>
 
-namespace etude {
+namespace etude::vulkan {
 
     namespace {
 
@@ -52,7 +52,7 @@ namespace etude {
 
             VkImageView view = nullptr;
             check(vkCreateImageView(device, &info, nullptr, &view), "vkCreateImageView");
-            return ImageView(view, ImageViewDeleter{device});
+            return ImageView(view, {device});
         }
     }
 
@@ -74,7 +74,7 @@ namespace etude {
         return srgb != formats.end() ? *srgb : formats.front();
     }
 
-    VulkanSwapchain createSwapchain(
+    Swapchain createSwapchain(
         VkPhysicalDevice physicalDevice,
         VkDevice device,
         VkSurfaceKHR surface,
@@ -108,8 +108,8 @@ namespace etude {
         VkSwapchainKHR handle = nullptr;
         check(vkCreateSwapchainKHR(device, &info, nullptr, &handle), "vkCreateSwapchainKHR");
 
-        VulkanSwapchain swapchain{
-            .handle = SwapchainHandle(handle, SwapchainDeleter{device}),
+        Swapchain swapchain{
+            .handle = SwapchainHandle(handle, {device}),
             .size = {
                 static_cast<int>(extent.width),
                 static_cast<int>(extent.height),

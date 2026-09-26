@@ -4,15 +4,15 @@
 
 #include <vulkan/vulkan.h>
 
-namespace etude {
+namespace etude::vulkan {
 
     /// @brief A graphics pipeline with its layout. The members are destroyed in reverse order, so the pipeline
     /// goes before its layout.
-    struct VulkanPipeline {
+    struct Pipeline {
         PipelineLayout layout;
-        Pipeline handle;
+        PipelineHandle handle;
     };
 
     /// @brief Creates the pipeline that draws a triangle with colored corners into images of the given format.
-    VulkanPipeline createTrianglePipeline(VkDevice device, VkFormat colorFormat);
+    Pipeline createTrianglePipeline(VkDevice device, VkFormat colorFormat);
 }

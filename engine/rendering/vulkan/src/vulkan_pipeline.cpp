@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <span>
 
-namespace etude {
+namespace etude::vulkan {
 
     namespace {
 
@@ -32,7 +32,7 @@ namespace etude {
 
             VkShaderModule shader = nullptr;
             check(vkCreateShaderModule(device, &info, nullptr, &shader), "vkCreateShaderModule");
-            return ShaderModule(shader, ShaderModuleDeleter{device});
+            return ShaderModule(shader, {device});
         }
 
         /// @brief Creates an empty layout, because the triangle shaders read neither descriptors nor push constants.
@@ -43,11 +43,11 @@ namespace etude {
 
             VkPipelineLayout layout = nullptr;
             check(vkCreatePipelineLayout(device, &info, nullptr, &layout), "vkCreatePipelineLayout");
-            return PipelineLayout(layout, PipelineLayoutDeleter{device});
+            return PipelineLayout(layout, {device});
         }
     }
 
-    VulkanPipeline createTrianglePipeline(VkDevice device, VkFormat colorFormat) {
+    Pipeline createTrianglePipeline(VkDevice device, VkFormat colorFormat) {
         // The shader modules are only needed while the pipeline is created.
         const ShaderModule vertex = createShaderModule(device, vertexShader);
         const ShaderModule fragment = createShaderModule(device, fragmentShader);
@@ -114,7 +114,7 @@ namespace etude {
             .pColorAttachmentFormats = &colorFormat,
         };
 
-        VulkanPipeline pipeline{
+        Pipeline pipeline{
             .layout = createPipelineLayout(device),
         };
         const VkGraphicsPipelineCreateInfo info{
@@ -134,7 +134,7 @@ namespace etude {
 
         VkPipeline handle = nullptr;
         check(vkCreateGraphicsPipelines(device, nullptr, 1, &info, nullptr, &handle), "vkCreateGraphicsPipelines");
-        pipeline.handle = Pipeline(handle, PipelineDeleter{device});
+        pipeline.handle = PipelineHandle(handle, {device});
         return pipeline;
     }
 }
