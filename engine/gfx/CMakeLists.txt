@@ -10,3 +10,4 @@ target_sources(etude_gfx
         FILES ${headers}
 )
 target_compile_features(etude_gfx INTERFACE cxx_std_23)
+target_link_libraries(etude_gfx INTERFACE etude::core)

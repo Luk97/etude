@@ -1,5 +1,6 @@
 #pragma once
 
+#include <etude/core/color.h>
 #include <etude/core/fixed_timestep.h>
 #include <etude/gfx/renderer.h>
 #include <etude/platform/frame_limiter.h>
@@ -34,7 +35,11 @@ namespace etude {
         /// @brief Called once per simulation step, 60 times per second at any frame rate.
         virtual void onStep(FixedTimestep::Duration step);
 
+        /// @brief Sets the frames per second.
         void setFramesPerSecond(int framesPerSecond);
+
+        /// @brief Sets the color that fills the window at the start of every frame.
+        void setClearColor(Color color);
 
     private:
         std::string title;

@@ -2,7 +2,10 @@
 #include <etude/core/log.h>
 #include <etude/runtime/application.h>
 
+#include <chrono>
+#include <cmath>
 #include <cstddef>
+#include <numbers>
 
 namespace {
 
@@ -30,8 +33,8 @@ namespace {
         }
     }
 
-    /// @brief Demo that logs all input and switches the frame limit to 30, 60 or 144 frames per second with the keys
-    /// 1, 2 and 3.
+    /// @brief Demo that logs all input, switches the frame limit to 30, 60 or 144 frames per second with the keys 1, 2
+    /// and 3, and lets the clear color wander through all hues.
     class Hello : public etude::Application {
     public:
         Hello() : Application("ÉTUDE", 1280, 720) {}
@@ -49,6 +52,21 @@ namespace {
                 setFramesPerSecond(144);
             }
         }
+
+        /// @brief Shifts red, green and blue by a third of a turn each, so that together they run through all hues
+        /// about every six seconds.
+        void onStep(etude::FixedTimestep::Duration step) override {
+            time += std::chrono::duration<float>(step).count();
+            const float third = 2.0f * std::numbers::pi_v<float> / 3.0f;
+            setClearColor({
+                .r = 0.5f + 0.5f * std::sin(time),
+                .g = 0.5f + 0.5f * std::sin(time + third),
+                .b = 0.5f + 0.5f * std::sin(time + 2.0f * third),
+            });
+        }
+
+    private:
+        float time = 0.0f;
     };
 }
 

@@ -57,4 +57,8 @@ namespace etude {
     void Application::setFramesPerSecond(int framesPerSecond) {
         limiter.setFramesPerSecond(framesPerSecond);
     }
+
+    void Application::setClearColor(Color color) {
+        renderer->setClearColor(color);
+    }
 }

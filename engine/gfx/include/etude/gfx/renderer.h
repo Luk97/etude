@@ -1,5 +1,7 @@
 #pragma once
 
+#include <etude/core/color.h>
+
 namespace etude {
 
     /// @brief Draws the frames of a game into its window.
@@ -15,6 +17,9 @@ namespace etude {
         /// @brief Draws the next frame into the window. Does nothing while the window has no area, for example
         /// while it is minimized.
         virtual void render() = 0;
+
+        /// @brief Sets the color that fills the window at the start of every frame.
+        virtual void setClearColor(Color color) = 0;
 
     protected:
         Renderer() = default;

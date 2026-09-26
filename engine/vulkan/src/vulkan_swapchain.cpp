@@ -1,6 +1,7 @@
 #include "vulkan_swapchain.h"
 
 #include "vulkan_check.h"
+#include "vulkan_sync.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -126,6 +127,7 @@ namespace etude {
 
         for (VkImage image : swapchain.images) {
             swapchain.views.push_back(createImageView(device, image, format.format));
+            swapchain.renderFinished.push_back(createSemaphore(device));
         }
         return swapchain;
     }

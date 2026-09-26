@@ -16,6 +16,11 @@ namespace etude {
         SwapchainHandle handle;
         std::vector<VkImage> images;
         std::vector<ImageView> views;
+
+        /// @brief Signaled when an image is rendered and may be presented. It belongs to the image and not to the frame
+        /// in flight, because presenting may still wait on it when that frame comes around again.
+        std::vector<Semaphore> renderFinished;
+
         VkFormat format = VK_FORMAT_UNDEFINED;
         Size size;
     };
