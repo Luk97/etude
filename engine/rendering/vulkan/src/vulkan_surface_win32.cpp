@@ -17,7 +17,7 @@ namespace etude::vulkan {
         return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
     }
 
-    VkSurfaceKHR createSurface(VkInstance instance, const Window& window) {
+    Surface createSurface(VkInstance instance, const Window& window) {
         const NativeHandles handles = window.nativeHandles();
         const VkWin32SurfaceCreateInfoKHR info{
             .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
@@ -27,6 +27,6 @@ namespace etude::vulkan {
 
         VkSurfaceKHR surface = nullptr;
         check(vkCreateWin32SurfaceKHR(instance, &info, nullptr, &surface), "vkCreateWin32SurfaceKHR");
-        return surface;
+        return Surface(surface, {instance});
     }
 }
