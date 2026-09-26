@@ -2,6 +2,7 @@
 
 #include "vulkan_check.h"
 #include "vulkan_handles.h"
+#include "vulkan_pipeline.h"
 #include "vulkan_surface.h"
 #include "vulkan_swapchain.h"
 #include "vulkan_sync.h"
@@ -298,6 +299,10 @@ namespace etude {
                 device = createDevice(gpu);
                 vkGetDeviceQueue(device.get(), gpu.queueFamily, 0, &queue);
 
+                // The surface keeps its format, so one pipeline serves every swapchain that is created later.
+                surfaceFormat = chooseSurfaceFormat(gpu.device, surface.get());
+                pipeline = createTrianglePipeline(device.get(), surfaceFormat.format);
+
                 commandPool = createCommandPool(device.get(), gpu.queueFamily);
                 for (Frame& frame : frames) {
                     frame = createFrame(device.get(), commandPool.get());
@@ -318,7 +323,7 @@ namespace etude {
                 vkDeviceWaitIdle(device.get());
             }
 
-            /// @brief Clears the next swapchain image with the clear color and presents it.
+            /// @brief Draws the triangle over the clear color into the next swapchain image and presents it.
             void render() override {
                 // A minimized window has no area, and Vulkan cannot create a swapchain without one.
                 const Size size = window.clientSize();
@@ -368,7 +373,7 @@ namespace etude {
 
             void recreateSwapchain(Size size) {
                 destroySwapchain();
-                swapchain = createSwapchain(gpu.device, device.get(), surface.get(), size);
+                swapchain = createSwapchain(gpu.device, device.get(), surface.get(), surfaceFormat, size);
                 logInfo(
                     "Swapchain {} x {} with {} images", swapchain->size.width, swapchain->size.height,
                     swapchain->images.size()
@@ -382,8 +387,8 @@ namespace etude {
                 swapchain.reset();
             }
 
-            /// @brief Records the commands for one frame: make the image a color target, clear it and hand it over for
-            /// presenting.
+            /// @brief Records the commands for one frame: make the image a color target, clear it, draw the triangle
+            /// and hand it over for presenting.
             void record(VkCommandBuffer commands, std::uint32_t imageIndex) const {
                 check(vkResetCommandBuffer(commands, 0), "vkResetCommandBuffer");
                 const VkCommandBufferBeginInfo begin{
@@ -433,6 +438,20 @@ namespace etude {
                     .pColorAttachments = &color,
                 };
                 vkCmdBeginRendering(commands, &rendering);
+
+                // Viewport and scissor are dynamic state, so the pipeline stays valid when the window size changes.
+                const VkViewport viewport{
+                    .width = static_cast<float>(area.extent.width),
+                    .height = static_cast<float>(area.extent.height),
+                    .maxDepth = 1.0f,
+                };
+                vkCmdSetViewport(commands, 0, 1, &viewport);
+                vkCmdSetScissor(commands, 0, 1, &area);
+
+                // Three vertices without a vertex buffer, the vertex shader looks up each corner by its index.
+                vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle.get());
+                vkCmdDraw(commands, 3, 1, 0, 0);
+
                 vkCmdEndRendering(commands);
 
                 // Presenting reads the image outside of the pipeline. The semaphore signaled by the submit orders it
@@ -502,6 +521,8 @@ namespace etude {
             Gpu gpu;
             Device device;
             VkQueue queue = nullptr;
+            VkSurfaceFormatKHR surfaceFormat{};
+            VulkanPipeline pipeline;
             CommandPool commandPool;
             std::array<Frame, framesInFlight> frames;
             std::size_t frameIndex = 0;

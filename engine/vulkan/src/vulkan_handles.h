@@ -79,6 +79,30 @@ namespace etude {
         }
     };
 
+    struct ShaderModuleDeleter {
+        VkDevice device = nullptr;
+
+        void operator()(VkShaderModule shader) const {
+            vkDestroyShaderModule(device, shader, nullptr);
+        }
+    };
+
+    struct PipelineLayoutDeleter {
+        VkDevice device = nullptr;
+
+        void operator()(VkPipelineLayout layout) const {
+            vkDestroyPipelineLayout(device, layout, nullptr);
+        }
+    };
+
+    struct PipelineDeleter {
+        VkDevice device = nullptr;
+
+        void operator()(VkPipeline pipeline) const {
+            vkDestroyPipeline(device, pipeline, nullptr);
+        }
+    };
+
     /// @brief On 64-bit platforms every Vulkan handle is a pointer to an opaque struct, so std::unique_ptr with
     /// a deleter can own it and destroys it automatically.
     using Instance = std::unique_ptr<std::remove_pointer_t<VkInstance>, InstanceDeleter>;
@@ -90,4 +114,7 @@ namespace etude {
     using Semaphore = std::unique_ptr<std::remove_pointer_t<VkSemaphore>, SemaphoreDeleter>;
     using Fence = std::unique_ptr<std::remove_pointer_t<VkFence>, FenceDeleter>;
     using CommandPool = std::unique_ptr<std::remove_pointer_t<VkCommandPool>, CommandPoolDeleter>;
+    using ShaderModule = std::unique_ptr<std::remove_pointer_t<VkShaderModule>, ShaderModuleDeleter>;
+    using PipelineLayout = std::unique_ptr<std::remove_pointer_t<VkPipelineLayout>, PipelineLayoutDeleter>;
+    using Pipeline = std::unique_ptr<std::remove_pointer_t<VkPipeline>, PipelineDeleter>;
 }

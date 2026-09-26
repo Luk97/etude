@@ -12,27 +12,6 @@ namespace etude {
 
     namespace {
 
-        /// @brief Prefers 8-bit sRGB, so that the display applies the gamma curve to the colors the shaders write.
-        /// Falls back to the first format the surface offers.
-        VkSurfaceFormatKHR chooseSurfaceFormat(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
-            std::uint32_t count = 0;
-            check(
-                vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &count, nullptr),
-                "vkGetPhysicalDeviceSurfaceFormatsKHR"
-            );
-            std::vector<VkSurfaceFormatKHR> formats(count);
-            check(
-                vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &count, formats.data()),
-                "vkGetPhysicalDeviceSurfaceFormatsKHR"
-            );
-
-            const auto srgb = std::ranges::find_if(formats, [](const VkSurfaceFormatKHR& format) {
-                return format.format == VK_FORMAT_B8G8R8A8_SRGB &&
-                       format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-            });
-            return srgb != formats.end() ? *srgb : formats.front();
-        }
-
         /// @brief Returns the size of the images. Most window systems dictate it through currentExtent, the special
         /// value 0xFFFFFFFF leaves the choice to the swapchain within the allowed range.
         VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR& capabilities, Size windowSize) {
@@ -77,10 +56,29 @@ namespace etude {
         }
     }
 
+    VkSurfaceFormatKHR chooseSurfaceFormat(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
+        std::uint32_t count = 0;
+        check(
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &count, nullptr),
+            "vkGetPhysicalDeviceSurfaceFormatsKHR"
+        );
+        std::vector<VkSurfaceFormatKHR> formats(count);
+        check(
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &count, formats.data()),
+            "vkGetPhysicalDeviceSurfaceFormatsKHR"
+        );
+
+        const auto srgb = std::ranges::find_if(formats, [](const VkSurfaceFormatKHR& format) {
+            return format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+        });
+        return srgb != formats.end() ? *srgb : formats.front();
+    }
+
     VulkanSwapchain createSwapchain(
         VkPhysicalDevice physicalDevice,
         VkDevice device,
         VkSurfaceKHR surface,
+        VkSurfaceFormatKHR format,
         Size windowSize
     ) {
         VkSurfaceCapabilitiesKHR capabilities{};
@@ -88,7 +86,6 @@ namespace etude {
             vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities),
             "vkGetPhysicalDeviceSurfaceCapabilitiesKHR"
         );
-        const VkSurfaceFormatKHR format = chooseSurfaceFormat(physicalDevice, surface);
         const VkExtent2D extent = chooseExtent(capabilities, windowSize);
 
         // FIFO waits for the display refresh and is the only present mode that every Vulkan device supports.
@@ -113,7 +110,6 @@ namespace etude {
 
         VulkanSwapchain swapchain{
             .handle = SwapchainHandle(handle, SwapchainDeleter{device}),
-            .format = format.format,
             .size = {
                 static_cast<int>(extent.width),
                 static_cast<int>(extent.height),
