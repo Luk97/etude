@@ -67,7 +67,7 @@ namespace etude {
             .pixels = std::vector<Pixel>(std::size_t{width} * height),
         };
 
-        // The chunks lie between header and end marker. A chunk has at most five bytes, so one that starte before the
+        // The chunks lie between header and end marker. A chunk has at most five bytes, so one that starts before the
         // end marker can be read without further checks, at worst it reads into the marker.
         const std::size_t chunksEnd = bytes.size() - endMarkerSize;
         std::size_t position = headerSize;

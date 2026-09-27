@@ -61,4 +61,8 @@ namespace etude {
     void Application::setClearColor(Color color) {
         renderer->setClearColor(color);
     }
+
+    TextureId Application::createTexture(const Image& image) {
+        return renderer->createTexture(image);
+    }
 }

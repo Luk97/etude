@@ -52,4 +52,18 @@ namespace etude::vulkan {
         };
         check(vkQueueSubmit2(queue, 1, &info, fence), "vkQueueSubmit2");
     }
+
+    void submitAndWait(VkQueue queue, VkCommandBuffer commands) {
+        const VkCommandBufferSubmitInfo buffer{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+            .commandBuffer = commands,
+        };
+        const VkSubmitInfo2 info{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .commandBufferInfoCount = 1,
+            .pCommandBufferInfos = &buffer,
+        };
+        check(vkQueueSubmit2(queue, 1, &info, nullptr), "vkQueueSubmit2");
+        check(vkQueueWaitIdle(queue), "vkQueueWaitIdle");
+    }
 }

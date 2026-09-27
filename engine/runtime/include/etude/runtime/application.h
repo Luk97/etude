@@ -41,6 +41,9 @@ namespace etude {
         /// @brief Sets the color that fills the window at the start of every frame.
         void setClearColor(Color color);
 
+        /// @brief Copies the image to the GPU and returns the id under which it can be drawn.
+        TextureId createTexture(const Image& image);
+
     private:
         std::string title;
         Window window;

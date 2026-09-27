@@ -1,4 +1,5 @@
 #include <etude/core/clock.h>
+#include <etude/core/image.h>
 #include <etude/core/log.h>
 #include <etude/runtime/application.h>
 
@@ -33,11 +34,29 @@ namespace {
         }
     }
 
+    /// @brief An 8 x 8 checkerboard of white and gray texels. Sampled with the nearest texel, its squares keep sharp
+    /// edges at any size.
+    etude::Image checkerboard() {
+        etude::Image image{
+            .width = 8,
+            .height = 8,
+        };
+        for (int y = 0; y < image.height; ++y) {
+            for (int x = 0; x < image.width; ++x) {
+                const bool white = (x + y) % 2 == 0;
+                image.pixels.push_back(white ? etude::Pixel{255, 255, 255, 255} : etude::Pixel{128, 128, 128, 255});
+            }
+        }
+        return image;
+    }
+
     /// @brief Demo that logs all input, switches the frame limit to 30, 60 or 144 frames per second with the keys 1, 2
-    /// and 3, and lets the clear color wander through all hues.
+    /// and 3, lets the clear color wander through all hues and puts a checkerboard on the triangle.
     class Hello : public etude::Application {
     public:
-        Hello() : Application("ÉTUDE", 1280, 720) {}
+        Hello() : Application("ÉTUDE", 1280, 720) {
+            createTexture(checkerboard());
+        }
 
     protected:
         void onFrame(const etude::Input& input) override {

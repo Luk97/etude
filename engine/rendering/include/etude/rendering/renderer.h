@@ -1,6 +1,8 @@
 #pragma once
 
+#include <etude/core/image.h>
 #include <etude/math/color.h>
+#include <etude/rendering/texture_id.h>
 
 namespace etude {
 
@@ -20,6 +22,10 @@ namespace etude {
 
         /// @brief Sets the color that fills the window at the start of every frame.
         virtual void setClearColor(Color color) = 0;
+
+        /// @brief Copies the image to the GPU and returns the id under which it can be drawn. Waits until the copy is
+        /// done, so textures are created while loading and not in every frame.
+        virtual TextureId createTexture(const Image& image) = 0;
 
     protected:
         Renderer() = default;

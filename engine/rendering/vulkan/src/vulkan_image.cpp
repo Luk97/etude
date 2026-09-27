@@ -6,7 +6,7 @@ namespace etude::vulkan {
 
     namespace {
 
-        /// @brief The single color layer of a swapchain image.
+        /// @brief The single color layer of the images that the renderer uses.
         constexpr VkImageSubresourceRange colorLayer{
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .levelCount = 1,
@@ -59,6 +59,34 @@ namespace etude::vulkan {
             .srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
             .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            .image = image,
+            .subresourceRange = colorLayer,
+        };
+        recordImageBarrier(commands, barrier);
+    }
+
+    void transitionToTransferTarget(VkCommandBuffer commands, VkImage image) {
+        const VkImageMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+            .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .image = image,
+            .subresourceRange = colorLayer,
+        };
+        recordImageBarrier(commands, barrier);
+    }
+
+    void transitionToShaderRead(VkCommandBuffer commands, VkImage image) {
+        const VkImageMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+            .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+            .dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .image = image,
             .subresourceRange = colorLayer,
         };

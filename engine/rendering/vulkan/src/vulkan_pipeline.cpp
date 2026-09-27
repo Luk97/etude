@@ -23,17 +23,19 @@ namespace etude::vulkan {
             ;
 #endif
 
-        /// @brief Creates a layout with one push constant for the vertex shader: the address of the buffer with the
-        /// corners of the triangle.
-        PipelineLayout createPipelineLayout(VkDevice device) {
-            const VkPushConstantRange address{
+        /// @brief Creates a layout with the texture table as set 0 and the push constants of the triangle for the
+        /// vertex shader.
+        PipelineLayout createPipelineLayout(VkDevice device, VkDescriptorSetLayout textureTable) {
+            const VkPushConstantRange constants{
                 .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                .size = sizeof(VkDeviceAddress),
+                .size = sizeof(TriangleConstants),
             };
             const VkPipelineLayoutCreateInfo info{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                .setLayoutCount = 1,
+                .pSetLayouts = &textureTable,
                 .pushConstantRangeCount = 1,
-                .pPushConstantRanges = &address,
+                .pPushConstantRanges = &constants,
             };
 
             VkPipelineLayout layout = nullptr;
@@ -42,7 +44,7 @@ namespace etude::vulkan {
         }
     }
 
-    Pipeline createTrianglePipeline(VkDevice device, VkFormat colorFormat) {
+    Pipeline createTrianglePipeline(VkDevice device, VkFormat colorFormat, VkDescriptorSetLayout textureTable) {
         // The shader modules are only needed while the pipeline is created.
         const ShaderModule vertex = createShaderModule(device, vertexShader);
         const ShaderModule fragment = createShaderModule(device, fragmentShader);
@@ -110,7 +112,7 @@ namespace etude::vulkan {
         };
 
         Pipeline pipeline{
-            .layout = createPipelineLayout(device),
+            .layout = createPipelineLayout(device, textureTable),
         };
         const VkGraphicsPipelineCreateInfo info{
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,

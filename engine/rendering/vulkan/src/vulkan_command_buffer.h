@@ -22,4 +22,8 @@ namespace etude::vulkan {
         const VkSemaphoreSubmitInfo& signal,
         VkFence fence
     );
+
+    /// @brief Sends the command buffer to the queue and blocks until the queue is idle. Only for rare work outside of
+    /// the frame such as uploads, because it also waits for the frames in flight.
+    void submitAndWait(VkQueue queue, VkCommandBuffer commands);
 }

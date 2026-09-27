@@ -35,7 +35,8 @@ namespace etude::vulkan {
         }
 
         /// @brief Returns true if the device supports Vulkan 1.3 with dynamic rendering and synchronization2, buffer
-        /// device addresses with the scalar block layout, and the swapchain extension that shows images in a window.
+        /// device addresses with the scalar block layout, descriptor indexing for the texture table, and the swapchain
+        /// extension that shows images in a window.
         bool meetsRequirements(VkPhysicalDevice device) {
             VkPhysicalDeviceProperties properties{};
             vkGetPhysicalDeviceProperties(device, &properties);
@@ -71,7 +72,10 @@ namespace etude::vulkan {
             vkGetPhysicalDeviceFeatures2(device, &features);
 
             return swapchain && features13.dynamicRendering == VK_TRUE && features13.synchronization2 == VK_TRUE &&
-                   features12.bufferDeviceAddress == VK_TRUE && features12.scalarBlockLayout == VK_TRUE;
+                   features12.bufferDeviceAddress == VK_TRUE && features12.scalarBlockLayout == VK_TRUE &&
+                   features12.runtimeDescriptorArray == VK_TRUE &&
+                   features12.descriptorBindingPartiallyBound == VK_TRUE &&
+                   features.features.shaderSampledImageArrayDynamicIndexing == VK_TRUE;
         }
     }
 
@@ -101,7 +105,7 @@ namespace etude::vulkan {
         if (!fallback) {
             logFatal(
                 "No graphics card supports Vulkan 1.3 with dynamic rendering, synchronization2, "
-                "buffer device addresses, the scalar block layout and a swapchain."
+                "buffer device addresses, the scalar block layout, descriptor indexing and a swapchain."
             );
             std::abort();
         }
@@ -117,8 +121,13 @@ namespace etude::vulkan {
             .queueCount = 1,
             .pQueuePriorities = &priority,
         };
+        const VkPhysicalDeviceFeatures features{
+            .shaderSampledImageArrayDynamicIndexing = VK_TRUE,
+        };
         VkPhysicalDeviceVulkan12Features features12{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .descriptorBindingPartiallyBound = VK_TRUE,
+            .runtimeDescriptorArray = VK_TRUE,
             .scalarBlockLayout = VK_TRUE,
             .bufferDeviceAddress = VK_TRUE,
         };
@@ -136,6 +145,7 @@ namespace etude::vulkan {
             .pQueueCreateInfos = &queue,
             .enabledExtensionCount = 1,
             .ppEnabledExtensionNames = extensions,
+            .pEnabledFeatures = &features,
         };
 
         VkDevice device = nullptr;
