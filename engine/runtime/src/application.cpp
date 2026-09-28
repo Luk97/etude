@@ -93,4 +93,8 @@ namespace etude {
     TextureId Application::createTexture(const Image& image) {
         return renderer->createTexture(image);
     }
+
+    Size Application::windowSize() const {
+        return window.clientSize();
+    }
 }

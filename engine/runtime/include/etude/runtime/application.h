@@ -49,6 +49,9 @@ namespace etude {
         /// @brief Copies the image to the GPU and returns the id under which it can be drawn.
         TextureId createTexture(const Image& image);
 
+        /// @brief Returns the size of the drawing area of the window in pixels, 0 x 0 while it is minimized.
+        Size windowSize() const;
+
     private:
         std::string title;
         Window window;
