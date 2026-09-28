@@ -28,6 +28,8 @@ namespace etude {
 
         Json(std::string string) : value(std::move(string)) {}
 
+        /// @brief Without this overload, a string literal would become a boolean, because the conversion from a
+        /// pointer to bool wins over the conversion to std::string.
         Json(const char* string) : value(std::string(string)) {}
 
         Json(Array array) : value(std::move(array)) {}

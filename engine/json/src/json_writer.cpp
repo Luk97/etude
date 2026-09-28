@@ -107,7 +107,7 @@ namespace etude {
             }
 
             const char* separator = "\n";
-            text += "{";
+            text += '{';
             for (const auto& [key, member] : object) {
                 text += separator;
                 separator = ",\n";
@@ -118,7 +118,7 @@ namespace etude {
             }
             text += '\n';
             writeIndent(text, depth);
-            text += "}";
+            text += '}';
         }
 
         void writeValue(std::string& text, const Json& json, int depth) {
