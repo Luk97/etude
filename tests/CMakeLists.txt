@@ -7,7 +7,7 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
     SYSTEM
 )
-# Catch2 has to use the standard of the tets, otherwise it leaves out its std::string_view support.
+# Catch2 has to use the standard of the tests, otherwise it leaves out its std::string_view support.
 set(CMAKE_CXX_STANDARD 23)
 FetchContent_MakeAvailable(Catch2)
 

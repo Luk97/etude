@@ -29,14 +29,14 @@ namespace etude::vulkan {
                 },
             };
             const VkDescriptorBindingFlags flags[] = {0, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
-            const VkDescriptorSetLayoutBindingFlagsCreateInfo bindingsFlags{
+            const VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
                 .bindingCount = 2,
                 .pBindingFlags = flags,
             };
             const VkDescriptorSetLayoutCreateInfo info{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                .pNext = &bindingsFlags,
+                .pNext = &bindingFlags,
                 .bindingCount = 2,
                 .pBindings = bindings,
             };

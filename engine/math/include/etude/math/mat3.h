@@ -9,8 +9,8 @@
 
 namespace etude {
 
-    /// @brief A 3x3 matrix for affine 2D transfroms such as translation, rotation and scaling. The columns lie one
-    /// after another in memory like in GLSL, the third column hold sthe translation and the bottom row stays 0, 0, 1.
+    /// @brief A 3x3 matrix for affine 2D transforms such as translation, rotation and scaling. The columns lie one
+    /// after another in memory like in GLSL, the third column holds the translation and the bottom row stays 0, 0, 1.
     struct Mat3 {
         std::array<std::array<float, 3>, 3> columns{{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
 
