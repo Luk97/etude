@@ -20,6 +20,12 @@ namespace etude {
         if (!alive(entity)) {
             return;
         }
+        for (const std::unique_ptr<ComponentStorage>& components : storages) {
+            if (components) {
+                components->remove(entity);
+            }
+        }
+
         const std::uint32_t index = indexOf(entity);
         generations[index] = (generations[index] + 1) & entityGenerationMask;
         freeIndices.push_back(index);
@@ -32,5 +38,10 @@ namespace etude {
 
     std::size_t World::size() const {
         return generations.size() - freeIndices.size();
+    }
+
+    std::size_t World::nextTypeIndex() {
+        static std::size_t next = 0;
+        return next++;
     }
 }
