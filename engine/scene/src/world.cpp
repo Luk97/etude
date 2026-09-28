@@ -40,6 +40,22 @@ namespace etude {
         return generations.size() - freeIndices.size();
     }
 
+    std::vector<Entity> World::entities() const {
+        std::vector<bool> isFree(generations.size());
+        for (const std::uint32_t index : freeIndices) {
+            isFree[index] = true;
+        }
+
+        std::vector<Entity> result;
+        result.reserve(size());
+        for (std::uint32_t index = 0; index < generations.size(); ++index) {
+            if (!isFree[index]) {
+                result.push_back(makeEntity(index, generations[index]));
+            }
+        }
+        return result;
+    }
+
     std::size_t World::nextTypeIndex() {
         static std::size_t next = 0;
         return next++;

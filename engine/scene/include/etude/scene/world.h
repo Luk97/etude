@@ -31,6 +31,9 @@ namespace etude {
         /// @brief Returns how many entities are alive.
         std::size_t size() const;
 
+        /// @brief Returns the entities that are alive, ordered by their index.
+        std::vector<Entity> entities() const;
+
         /// @brief Adds the component to the entity, or replaces the one it has, and returns the stored component. The
         /// reference stays valid until a component of the same type is added or removed, also through destroy.
         template <typename Component>

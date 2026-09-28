@@ -83,6 +83,18 @@ TEST_CASE("World starts the generation of an index again at 0 after 4096 reuses"
     CHECK(world.alive(first));
 }
 
+TEST_CASE("World lists the entities that are alive in the order of their indices") {
+    World world;
+    const Entity first = world.create();
+    const Entity second = world.create();
+    const Entity third = world.create();
+    world.destroy(second);
+    CHECK(world.entities() == std::vector{first, third});
+
+    const Entity reused = world.create();
+    CHECK(world.entities() == std::vector{first, reused, third});
+}
+
 TEST_CASE("World adds components and finds them again") {
     World world;
     const Entity entity = world.create();
