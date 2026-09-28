@@ -16,19 +16,19 @@ namespace etude::vulkan {
 #else
         // glslc turns the shaders into C initializer lists of SPIR-V words during the build.
         constexpr std::uint32_t vertexShader[] =
-    #include "vulkan_triangle.vert.inc"
+    #include "vulkan_sprite.vert.inc"
             ;
         constexpr std::uint32_t fragmentShader[] =
-    #include "vulkan_triangle.frag.inc"
+    #include "vulkan_sprite.frag.inc"
             ;
 #endif
 
-        /// @brief Creates a layout with the texture table as set 0 and the push constants of the triangle for the
+        /// @brief Creates a layout with the texture table as set 0 and the push constants of the sprites for the
         /// vertex shader.
         PipelineLayout createPipelineLayout(VkDevice device, VkDescriptorSetLayout textureTable) {
             const VkPushConstantRange constants{
                 .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                .size = sizeof(TriangleConstants),
+                .size = sizeof(SpriteConstants),
             };
             const VkPipelineLayoutCreateInfo info{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -44,7 +44,7 @@ namespace etude::vulkan {
         }
     }
 
-    Pipeline createTrianglePipeline(VkDevice device, VkFormat colorFormat, VkDescriptorSetLayout textureTable) {
+    Pipeline createSpritePipeline(VkDevice device, VkFormat colorFormat, VkDescriptorSetLayout textureTable) {
         // The shader modules are only needed while the pipeline is created.
         const ShaderModule vertex = createShaderModule(device, vertexShader);
         const ShaderModule fragment = createShaderModule(device, fragmentShader);
@@ -63,7 +63,8 @@ namespace etude::vulkan {
             },
         };
 
-        // The vertex shader reads the corners through a buffer address, so there is no vertex input.
+        // The vertex shader builds the corners itself and reads the sprites through a buffer address, so there is no
+        // vertex input.
         const VkPipelineVertexInputStateCreateInfo vertexInput{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         };
@@ -88,7 +89,15 @@ namespace etude::vulkan {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
         };
+        // A sprite covers what lies below by its alpha. The sRGB target blends in linear space, as blending should.
         const VkPipelineColorBlendAttachmentState blendAttachment{
+            .blendEnable = VK_TRUE,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .colorBlendOp = VK_BLEND_OP_ADD,
+            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .alphaBlendOp = VK_BLEND_OP_ADD,
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
                               VK_COLOR_COMPONENT_A_BIT,
         };

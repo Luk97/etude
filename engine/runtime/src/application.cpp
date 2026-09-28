@@ -34,7 +34,10 @@ namespace etude {
             steps += dueSteps;
             ++frames;
 
-            renderer->render();
+            // The sprites start anew in every frame, while the camera stays where the game left it.
+            renderList.sprites.clear();
+            onDraw(renderList);
+            renderer->render(renderList.camera.viewProjection(window.clientSize()), renderList.sprites);
 
             const double elapsed = secondClock.elapsedSeconds();
             if (elapsed >= 1.0) {
@@ -53,6 +56,8 @@ namespace etude {
     void Application::onFrame(const Input&) {}
 
     void Application::onStep(FixedTimestep::Duration) {}
+
+    void Application::onDraw(RenderList&) {}
 
     void Application::setFramesPerSecond(int framesPerSecond) {
         limiter.setFramesPerSecond(framesPerSecond);

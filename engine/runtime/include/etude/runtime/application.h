@@ -5,6 +5,7 @@
 #include <etude/platform/frame_limiter.h>
 #include <etude/platform/input.h>
 #include <etude/platform/window.h>
+#include <etude/render2d/render_list.h>
 #include <etude/rendering/renderer.h>
 
 #include <memory>
@@ -35,6 +36,10 @@ namespace etude {
         /// @brief Called once per simulation step, 60 times per second at any frame rate.
         virtual void onStep(FixedTimestep::Duration step);
 
+        /// @brief Called once per frame after the simulation steps, right before the frame is drawn. The game adds the
+        /// sprites of this frame to the list, which starts empty every time, and may move the camera.
+        virtual void onDraw(RenderList& list);
+
         /// @brief Sets the frames per second.
         void setFramesPerSecond(int framesPerSecond);
 
@@ -48,6 +53,7 @@ namespace etude {
         std::string title;
         Window window;
         std::unique_ptr<Renderer> renderer;
+        RenderList renderList;
         FixedTimestep timestep;
         FrameLimiter limiter;
     };

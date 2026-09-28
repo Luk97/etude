@@ -1,6 +1,5 @@
 #include <etude/rendering/vulkan/vulkan_renderer.h>
 
-#include "vulkan_buffer.h"
 #include "vulkan_check.h"
 #include "vulkan_command_buffer.h"
 #include "vulkan_command_pool.h"
@@ -10,6 +9,7 @@
 #include "vulkan_frame.h"
 #include "vulkan_image.h"
 #include "vulkan_pipeline.h"
+#include "vulkan_sprite_batch.h"
 #include "vulkan_swapchain.h"
 #include "vulkan_texture.h"
 #include "vulkan_texture_table.h"
@@ -21,7 +21,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <optional>
 #include <vector>
 
@@ -31,41 +30,13 @@ namespace etude::vulkan {
 
     namespace {
 
-        /// @brief The corners of the triangle in clip space, where y points down, with their texture coordinaes and
-        /// colors.
-        constexpr std::array triangleCorners{
-            TriangleVertex{
-                .position = {0.0f, -0.5f},
-                .uv = {0.5f, 0.0f},
-                .color = {.r = 1.0f},
-            },
-            TriangleVertex{
-                .position = {0.5f, 0.5f},
-                .uv = {1.0f, 1.0f},
-                .color = {.g = 1.0f},
-            },
-            TriangleVertex{
-                .position = {-0.5f, 0.5f},
-                .uv = {0.0f, 1.0f},
-                .color = {.b = 1.0f},
-            },
-        };
-
         class Renderer final : public etude::Renderer {
         public:
             explicit Renderer(const Window& window) : window(window), context(createContext(window)) {
                 // The surface keeps its format, so one pipeline serves every swapchain that is created later.
                 surfaceFormat = chooseSurfaceFormat(context.gpu.device, context.surface.get());
                 textureTable = createTextureTable(context.device.get());
-                pipeline =
-                    createTrianglePipeline(context.device.get(), surfaceFormat.format, textureTable.layout.get());
-
-                // The CPU writes the corners once, the vertex shader reads them through the address of the buffer.
-                triangle = createBuffer(
-                    context.gpu.device, context.device.get(), sizeof(triangleCorners),
-                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, MemoryAccess::CpuWrite
-                );
-                std::memcpy(triangle.allocation.mapped, triangleCorners.data(), sizeof(triangleCorners));
+                pipeline = createSpritePipeline(context.device.get(), surfaceFormat.format, textureTable.layout.get());
 
                 commandPool = createCommandPool(context.device.get(), context.gpu.queueFamily);
                 uploads = allocateCommandBuffer(context.device.get(), commandPool.get());
@@ -80,8 +51,8 @@ namespace etude::vulkan {
                 vkDeviceWaitIdle(context.device.get());
             }
 
-            /// @brief Draws the triangle over the clear color into the next swapchain image and presents it.
-            void render() override {
+            /// @brief Draws the sprites over the clear color into the next swapchain image and presents it.
+            void render(const Mat3& viewProjection, std::span<const Sprite> sprites) override {
                 // A minimized window has no area, and Vulkan cannot create a swapchain without one.
                 const Size size = window.clientSize();
                 if (size.width == 0 || size.height == 0) {
@@ -105,7 +76,8 @@ namespace etude::vulkan {
                 // Reset only now that the frame is sure to be submitted, otherwise the next wait would block forever.
                 resetFence(context.device.get(), frame.inFlight.get());
 
-                record(frame.commands, *imageIndex);
+                uploadSprites(context.gpu.device, context.device.get(), frame.sprites, sprites);
+                record(frame, *imageIndex, viewProjection);
                 submit(frame, *imageIndex);
                 if (!presentImage(context.queue, *swapchain, *imageIndex)) {
                     destroySwapchain();
@@ -121,13 +93,11 @@ namespace etude::vulkan {
             /// frame in flight uses the table while it changes.
             TextureId createTexture(const Image& image) override {
                 ETUDE_ASSERT(textures.size() < maxTextures);
-
                 const auto index = static_cast<std::uint32_t>(textures.size());
                 textures.push_back(
                     vulkan::createTexture(context.gpu.device, context.device.get(), context.queue, uploads, image)
                 );
                 writeTexture(context.device.get(), textureTable, index, textures.back().view.get());
-
                 return static_cast<TextureId>(index);
             }
 
@@ -150,10 +120,10 @@ namespace etude::vulkan {
                 swapchain.reset();
             }
 
-            /// @brief Records the commands for one frame: make the image a color target, clear it, draw the triangle
-            /// and hand it over for presenting. Until sprites arrive, the triangle shows the newest texture and waits
-            /// for the first one.
-            void record(VkCommandBuffer commands, std::uint32_t imageIndex) const {
+            /// @brief Records the commands for one frame: make the image a color target, clear it, draw the sprites of
+            /// the frame and hand the image over for presenting.
+            void record(const Frame& frame, std::uint32_t imageIndex, const Mat3& viewProjection) const {
+                const VkCommandBuffer commands = frame.commands;
                 const VkImage image = swapchain->images[imageIndex];
                 const VkRect2D area{
                     .extent = {
@@ -165,31 +135,10 @@ namespace etude::vulkan {
                 beginCommands(commands);
                 transitionToColorTarget(commands, image);
                 beginRendering(commands, swapchain->views[imageIndex].get(), area, clearColor);
-
-                if (!textures.empty()) {
-                    drawTriangle(commands, static_cast<std::uint32_t>(textures.size() - 1));
-                }
-
+                recordSprites(commands, pipeline, textureTable.set, frame.sprites, viewProjection);
                 endRendering(commands);
                 transitionToPresent(commands, image);
                 endCommands(commands);
-            }
-
-            /// @brief Draws the triangle with the texture at the given index of the texture table. Three vertices
-            /// without a vertex buffer: the vertex shader fetches each corner by its index from the buffer whose
-            /// address it gets as a push constant.
-            void drawTriangle(VkCommandBuffer commands, std::uint32_t textureIndex) const {
-                const VkPipelineLayout layout = pipeline.layout.get();
-                const TriangleConstants constants{
-                    .corners = triangle.address,
-                    .textureIndex = textureIndex,
-                };
-                vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle.get());
-                vkCmdBindDescriptorSets(
-                    commands, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &textureTable.set, 0, nullptr
-                );
-                vkCmdPushConstants(commands, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(constants), &constants);
-                vkCmdDraw(commands, 3, 1, 0, 0);
             }
 
             /// @brief Sends the recorded commands to the GPU. They start drawing once the image is acquired, then
@@ -214,7 +163,6 @@ namespace etude::vulkan {
             TextureTable textureTable;
             std::vector<Texture> textures;
             Pipeline pipeline;
-            Buffer triangle;
             CommandPool commandPool;
             VkCommandBuffer uploads = nullptr;
             std::array<Frame, framesInFlight> frames;

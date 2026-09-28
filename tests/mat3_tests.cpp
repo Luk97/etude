@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include "check_near.h"
 
 #include <etude/math/mat3.h>
 
@@ -8,15 +9,6 @@
 using etude::Mat3;
 using etude::Rect;
 using etude::Vec2;
-
-namespace {
-
-    /// @brief Compares both components with a tolerance, because rotations and divisions are not exact in floats.
-    void checkNear(Vec2 actual, Vec2 expected) {
-        CHECK_THAT(actual.x, Catch::Matchers::WithinAbs(expected.x, 1e-5));
-        CHECK_THAT(actual.y, Catch::Matchers::WithinAbs(expected.y, 1e-5));
-    }
-}
 
 TEST_CASE("Mat3 starts as the identity") {
     CHECK(Mat3{} * Vec2{3.0f, 4.0f} == Vec2{3.0f, 4.0f});

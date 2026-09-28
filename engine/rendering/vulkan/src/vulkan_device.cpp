@@ -75,6 +75,7 @@ namespace etude::vulkan {
                    features12.bufferDeviceAddress == VK_TRUE && features12.scalarBlockLayout == VK_TRUE &&
                    features12.runtimeDescriptorArray == VK_TRUE &&
                    features12.descriptorBindingPartiallyBound == VK_TRUE &&
+                   features12.shaderSampledImageArrayNonUniformIndexing == VK_TRUE &&
                    features.features.shaderSampledImageArrayDynamicIndexing == VK_TRUE;
         }
     }
@@ -126,6 +127,7 @@ namespace etude::vulkan {
         };
         VkPhysicalDeviceVulkan12Features features12{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
             .descriptorBindingPartiallyBound = VK_TRUE,
             .runtimeDescriptorArray = VK_TRUE,
             .scalarBlockLayout = VK_TRUE,

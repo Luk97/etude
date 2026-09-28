@@ -2,6 +2,7 @@
 
 #include "vulkan_fence.h"
 #include "vulkan_semaphore.h"
+#include "vulkan_sprite_batch.h"
 
 #include <cstddef>
 
@@ -18,6 +19,7 @@ namespace etude::vulkan {
         VkCommandBuffer commands = nullptr;
         Semaphore imageAvailable;
         Fence inFlight;
+        SpriteBatch sprites;
     };
 
     /// @brief Creates the objects of one frame. The fence starts signaled, so that the first frame does not wait for a

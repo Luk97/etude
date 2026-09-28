@@ -2,7 +2,11 @@
 
 #include <etude/core/image.h>
 #include <etude/math/color.h>
+#include <etude/math/mat3.h>
+#include <etude/rendering/sprite.h>
 #include <etude/rendering/texture_id.h>
+
+#include <span>
 
 namespace etude {
 
@@ -16,9 +20,10 @@ namespace etude {
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
 
-        /// @brief Draws the next frame into the window. Does nothing while the window has no area, for example
+        /// @brief Draws the sprites over the clear color into the window. Later sprites cover earlier ones, and the
+        /// matrix maps their world coordinates to clip space. Does nothing while the window has no area, for example
         /// while it is minimized.
-        virtual void render() = 0;
+        virtual void render(const Mat3& viewProjection, std::span<const Sprite> sprites) = 0;
 
         /// @brief Sets the color that fills the window at the start of every frame.
         virtual void setClearColor(Color color) = 0;

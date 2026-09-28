@@ -50,13 +50,28 @@ namespace {
         return image;
     }
 
+    /// @brief A 16 x 16 disc of translucent red on a transparent background, to show alpha blending.
+    etude::Image disc() {
+        etude::Image image{
+            .width = 16,
+            .height = 16,
+        };
+        for (int y = 0; y < image.height; ++y) {
+            for (int x = 0; x < image.width; ++x) {
+                const etude::Vec2 offset{static_cast<float>(x) - 7.5f, static_cast<float>(y) - 7.5f};
+                const bool inside = offset.lengthSquared() <= 64.0f;
+                image.pixels.push_back(inside ? etude::Pixel{255, 64, 64, 160} : etude::Pixel{});
+            }
+        }
+        return image;
+    }
+
     /// @brief Demo that logs all input, switches the frame limit to 30, 60 or 144 frames per second with the keys 1, 2
-    /// and 3, lets the clear color wander through all hues and puts a checkerboard on the triangle.
+    /// and 3, lets the clear color wander through all hues and draws a checkerboard with eight translucent discs
+    /// circling around it.
     class Hello : public etude::Application {
     public:
-        Hello() : Application("ÉTUDE", 1280, 720) {
-            createTexture(checkerboard());
-        }
+        Hello() : Application("ÉTUDE", 1280, 720), board(createTexture(checkerboard())), dot(createTexture(disc())) {}
 
     protected:
         void onFrame(const etude::Input& input) override {
@@ -84,7 +99,29 @@ namespace {
             });
         }
 
+        /// @brief Draws the checkerboard first and the discs over it. All sprites go into one draw, although they use
+        /// two textures.
+        void onDraw(etude::RenderList& list) override {
+            const etude::Vec2 center{640.0f, 360.0f};
+            list.sprites.push_back({
+                .position = center - etude::Vec2{128.0f, 128.0f},
+                .size = {256.0f, 256.0f},
+                .texture = board,
+            });
+            for (int i = 0; i < 8; ++i) {
+                const float angle = time + static_cast<float>(i) * std::numbers::pi_v<float> / 4.0f;
+                const etude::Vec2 orbit{200.0f * std::cos(angle), 200.0f * std::sin(angle)};
+                list.sprites.push_back({
+                    .position = center + orbit - etude::Vec2{32.0f, 32.0f},
+                    .size = {64.0f, 64.0f},
+                    .texture = dot,
+                });
+            }
+        }
+
     private:
+        etude::TextureId board;
+        etude::TextureId dot;
         float time = 0.0f;
     };
 }
