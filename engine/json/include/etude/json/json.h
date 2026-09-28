@@ -2,7 +2,9 @@
 
 #include <concepts>
 #include <cstddef>
+#include <expected>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -75,4 +77,16 @@ namespace etude {
     /// stay readable and their diffs small. Arrays of plain values, such as a position, stay on one line. Numbers take
     /// the shortest form that reads back to the same double. The text does not end with a line break.
     std::string writeJson(const Json& json);
+
+    /// @brief Where and why JSON text could not be read. Line and column count from 1, the column in bytes.
+    struct JsonError {
+        int line = 0;
+        int column = 0;
+        std::string message;
+    };
+
+    /// @brief Reads JSON text as RFC 8259 defines it, including escapes and surrogate pairs. Returns where and why
+    /// reading failed instead, also for things the standard leaves open: a key that appears twice in an object, a
+    /// number beyond the range of a double and values nested more than 128 levels deep.
+    std::expected<Json, JsonError> parseJson(std::string_view text);
 }

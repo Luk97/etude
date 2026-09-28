@@ -3,8 +3,17 @@
 #include <etude/json/json.h>
 
 #include <limits>
+#include <string>
+#include <string_view>
 
 using etude::Json;
+
+namespace {
+
+    bool refuses(std::string_view text) {
+        return !etude::parseJson(text).has_value();
+    }
+}
 
 TEST_CASE("Json keeps a string literal as a string instead of a boolean") {
     CHECK(Json("text").isString());
@@ -66,4 +75,84 @@ TEST_CASE("writeJson indents nested values and keeps the order of the members") 
         }
     ]
 })");
+}
+
+TEST_CASE("parseJson reads null, booleans and numbers") {
+    CHECK(etude::parseJson("null") == Json(nullptr));
+    CHECK(etude::parseJson("true") == Json(true));
+    CHECK(etude::parseJson("false") == Json(false));
+    CHECK(etude::parseJson("-0.5") == Json(-0.5));
+    CHECK(etude::parseJson("1e3") == Json(1000));
+}
+
+TEST_CASE("parseJson resolves escapes and \\u sequences into UTF-8") {
+    CHECK(etude::parseJson(R"("a\"b\\c\/d\n")") == Json("a\"b\\c/d\n"));
+    CHECK(etude::parseJson(R"("\u00c9TUDE")") == Json("ÉTUDE"));
+    CHECK(etude::parseJson(R"("\ud83d\ude00")") == Json("\xf0\x9f\x98\x80"));
+}
+
+TEST_CASE("parseJson reads nested values and keeps the order of the members") {
+    const Json expected = Json::Object{
+        {"version", 1},
+        {"entities", Json::Array{Json::Object{{"name", "Player"}}}},
+        {"empty", Json::Object{}},
+    };
+    CHECK(etude::parseJson(" {\"version\": 1, \"entities\": [{\"name\": \"Player\"}], \"empty\": {}}\n") == expected);
+}
+
+TEST_CASE("parseJson reads back exactly what writeJson wrote") {
+    const Json original = Json::Object{
+        {"numbers", Json::Array{0.1, 1e21, -2.5, 123456789.125, 5e-324}},
+        {"text", "line\nbreak \"quoted\" \x01 ÉTUDE"},
+        {"nested", Json::Array{Json::Array{}, Json::Object{{"flag", false}}, nullptr}},
+    };
+    CHECK(etude::parseJson(etude::writeJson(original)) == original);
+}
+
+TEST_CASE("parseJson reports the line and column of an error") {
+    const auto result = etude::parseJson("{\n    \"a\": 1,\n    \"b\" 2\n}");
+    REQUIRE_FALSE(result);
+    CHECK(result.error().line == 3);
+    CHECK(result.error().column == 9);
+}
+
+TEST_CASE("parseJson refuses a key that appears twice") {
+    const auto result = etude::parseJson(R"({"a": 1, "a": 2})");
+    REQUIRE_FALSE(result);
+    CHECK(result.error().column == 10);
+}
+
+TEST_CASE("parseJson refuses numbers that JSON does not allow") {
+    CHECK(refuses("01"));
+    CHECK(refuses("+1"));
+    CHECK(refuses(".5"));
+    CHECK(refuses("1."));
+    CHECK(refuses("1e"));
+    CHECK(refuses("-"));
+    CHECK(refuses("0x10"));
+    CHECK(refuses("NaN"));
+    CHECK(refuses("1e400"));
+}
+
+TEST_CASE("parseJson refuses broken strings") {
+    CHECK(refuses("\"no end"));
+    CHECK(refuses("\"raw\ttab\""));
+    CHECK(refuses(R"("\q")"));
+    CHECK(refuses(R"("\u12")"));
+    CHECK(refuses(R"("\ud83d")"));
+    CHECK(refuses(R"("\ude00")"));
+}
+
+TEST_CASE("parseJson refuses trailing commas, missing ends and text after the value") {
+    CHECK(refuses("[1, 2,]"));
+    CHECK(refuses(R"({"a": 1,})"));
+    CHECK(refuses("[1, 2"));
+    CHECK(refuses(R"({"a": 1)"));
+    CHECK(refuses("1 2"));
+    CHECK(refuses(""));
+}
+
+TEST_CASE("parseJson refuses values nested too deeply instead of overflowing the stack") {
+    CHECK_FALSE(refuses(std::string(100, '[') + std::string(100, ']')));
+    CHECK(refuses(std::string(10000, '[') + std::string(10000, ']')));
 }
