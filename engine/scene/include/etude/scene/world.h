@@ -8,6 +8,7 @@
 
 namespace etude {
 
+    /// @brief Holds the entities of a scene.
     class World {
     public:
         /// @brief Creates an entity, reusing the index of a destroyed one with the next generation if there is one.
