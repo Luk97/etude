@@ -61,6 +61,26 @@ namespace etude {
             return std::holds_alternative<Object>(value);
         }
 
+        /// @brief Returns the value if it holds a T, or nullptr otherwise, just like std::get_if.
+        template <typename T>
+        const T* tryGet() const {
+            return std::get_if<T>(&value);
+        }
+
+        /// @brief Returns the member with the key if this is an object that has one, or nullptr otherwise.
+        const Json* find(std::string_view key) const {
+            const Object* object = tryGet<Object>();
+            if (object == nullptr) {
+                return nullptr;
+            }
+            for (const auto& [name, member] : *object) {
+                if (name == key) {
+                    return &member;
+                }
+            }
+            return nullptr;
+        }
+
         /// @brief Calls the visitor with whatever the value holds, just like std::visit.
         template <typename Visitor>
         decltype(auto) visit(Visitor&& visitor) const {

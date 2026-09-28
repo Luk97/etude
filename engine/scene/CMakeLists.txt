@@ -13,4 +13,4 @@ target_sources(etude_scene
         FILES ${headers}
 )
 target_compile_features(etude_scene PUBLIC cxx_std_23)
-target_link_libraries(etude_scene PUBLIC etude::core PRIVATE etude::warnings)
+target_link_libraries(etude_scene PUBLIC etude::core etude::math etude::json PRIVATE etude::warnings)

@@ -25,6 +25,21 @@ TEST_CASE("Json compares by value, so 1 equals 1.0 but not the string 1") {
     CHECK(Json(1) != Json("1"));
 }
 
+TEST_CASE("Json hands out what it holds, but only as the right type") {
+    const Json number = 2.5;
+    REQUIRE(number.tryGet<double>() != nullptr);
+    CHECK(*number.tryGet<double>() == 2.5);
+    CHECK(number.tryGet<std::string>() == nullptr);
+}
+
+TEST_CASE("Json finds the members of an object by their key") {
+    const Json object = Json::Object{{"a", 1}, {"b", "two"}};
+    REQUIRE(object.find("b") != nullptr);
+    CHECK(*object.find("b") == Json("two"));
+    CHECK(object.find("c") == nullptr);
+    CHECK(Json(1).find("a") == nullptr);
+}
+
 TEST_CASE("writeJson writes null, booleans and strings") {
     CHECK(etude::writeJson(nullptr) == "null");
     CHECK(etude::writeJson(true) == "true");
