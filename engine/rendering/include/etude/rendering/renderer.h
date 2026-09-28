@@ -6,9 +6,17 @@
 #include <etude/rendering/sprite.h>
 #include <etude/rendering/texture_id.h>
 
+#include <chrono>
 #include <span>
 
 namespace etude {
+
+    /// @brief How long the renderer worked on a frame: on the CPU without waiting for the GPU or the display, and on
+    /// the GPU while it drew the scene.
+    struct FrameTimes {
+        std::chrono::nanoseconds cpu{};
+        std::chrono::nanoseconds gpu{};
+    };
 
     /// @brief Draws the frames of a game into its window.
     /// The graphics API behind it is an implementation detail: ETUDE implements the renderer with Vulkan. Another
@@ -31,6 +39,10 @@ namespace etude {
         /// @brief Copies the image to the GPU and returns the id under which it can be drawn. Waits until the copy is
         /// done, so textures are created while loading and not in every frame.
         virtual TextureId createTexture(const Image& image) = 0;
+
+        /// @brief Returns the times of the last frame. The GPU time belongs to an earlier frame, because the renderer
+        /// can only read it once the GPU has finished that frame.
+        virtual FrameTimes frameTimes() const = 0;
 
     protected:
         Renderer() = default;

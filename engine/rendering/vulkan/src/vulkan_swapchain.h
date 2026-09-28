@@ -1,7 +1,6 @@
 #pragma once
 
 #include "vulkan_handles.h"
-#include "vulkan_image.h"
 #include "vulkan_semaphore.h"
 
 #include <etude/math/size.h>
@@ -16,12 +15,10 @@ namespace etude::vulkan {
 
     using SwapchainHandle = DeviceChild<VkSwapchainKHR, vkDestroySwapchainKHR>;
 
-    /// @brief A swapchain with its images and one view per image, ready to be rendered into.
-    /// The members are destroyed in reverse order, so the views go before the swapchain that owns their images.
+    /// @brief A swapchain with its images, into which the renderer copies the finished frames.
     struct Swapchain {
         SwapchainHandle handle;
         std::vector<VkImage> images;
-        std::vector<ImageView> views;
 
         /// @brief Signaled when an image is rendered and may be presented. It belongs to the image and not to the frame
         /// in flight, because presenting may still wait on it when that frame comes around again.

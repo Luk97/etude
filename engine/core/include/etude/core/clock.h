@@ -10,8 +10,12 @@ namespace etude {
     public:
         Clock() : start(std::chrono::steady_clock::now()) {}
 
+        std::chrono::steady_clock::duration elapsed() const {
+            return std::chrono::steady_clock::now() - start;
+        }
+
         double elapsedSeconds() const {
-            return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+            return std::chrono::duration<double>(elapsed()).count();
         }
 
         void reset() {

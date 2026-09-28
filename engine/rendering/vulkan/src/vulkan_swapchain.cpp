@@ -81,7 +81,7 @@ namespace etude::vulkan {
             .imageColorSpace = format.colorSpace,
             .imageExtent = extent,
             .imageArrayLayers = 1,
-            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
             .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
             .preTransform = capabilities.currentTransform,
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
@@ -105,8 +105,7 @@ namespace etude::vulkan {
         swapchain.images.resize(count);
         check(vkGetSwapchainImagesKHR(device, handle, &count, swapchain.images.data()), "vkGetSwapchainImagesKHR");
 
-        for (VkImage image : swapchain.images) {
-            swapchain.views.push_back(createImageView(device, image, format.format));
+        for (std::uint32_t i = 0; i < count; ++i) {
             swapchain.renderFinished.push_back(createSemaphore(device));
         }
         return swapchain;

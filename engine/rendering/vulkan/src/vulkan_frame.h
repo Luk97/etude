@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vulkan_fence.h"
+#include "vulkan_gpu_timer.h"
 #include "vulkan_semaphore.h"
 #include "vulkan_sprite_batch.h"
 
@@ -19,6 +20,7 @@ namespace etude::vulkan {
         VkCommandBuffer commands = nullptr;
         Semaphore imageAvailable;
         Fence inFlight;
+        GpuTimer timer;
         SpriteBatch sprites;
     };
 

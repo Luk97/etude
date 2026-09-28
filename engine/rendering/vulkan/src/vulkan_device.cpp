@@ -96,10 +96,10 @@ namespace etude::vulkan {
             VkPhysicalDeviceProperties properties{};
             vkGetPhysicalDeviceProperties(device, &properties);
             if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-                return {device, *family};
+                return {device, *family, properties.limits.timestampPeriod};
             }
             if (!fallback) {
-                fallback = Gpu{device, *family};
+                fallback = Gpu{device, *family, properties.limits.timestampPeriod};
             }
         }
 

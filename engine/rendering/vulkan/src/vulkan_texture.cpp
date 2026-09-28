@@ -1,7 +1,6 @@
 #include "vulkan_texture.h"
 
 #include "vulkan_buffer.h"
-#include "vulkan_check.h"
 #include "vulkan_command_buffer.h"
 
 #include <cstdint>
@@ -71,36 +70,11 @@ namespace etude::vulkan {
         VkCommandBuffer commands,
         const Image& image
     ) {
-        const VkImageCreateInfo info{
-            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            .imageType = VK_IMAGE_TYPE_2D,
-            .format = textureFormat,
-            .extent = extentOf(image),
-            .mipLevels = 1,
-            .arrayLayers = 1,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        };
-
-        VkImage handle = nullptr;
-        check(vkCreateImage(device, &info, nullptr, &handle), "vkCreateImage");
-
-        VkMemoryRequirements requirements{};
-        vkGetImageMemoryRequirements(device, handle, &requirements);
-        Texture texture{
-            .allocation = allocateMemory(physicalDevice, device, requirements, MemoryAccess::GpuOnly, 0),
-            .image = ImageHandle(handle, {device}),
-        };
-        check(
-            vkBindImageMemory(device, handle, texture.allocation.memory.get(), texture.allocation.offset),
-            "vkBindImageMemory"
+        Texture texture = createImage(
+            physicalDevice, device, {image.width, image.height}, textureFormat,
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         );
-        texture.view = createImageView(device, handle, textureFormat);
-
-        copyPixels(physicalDevice, device, queue, commands, image, handle);
+        copyPixels(physicalDevice, device, queue, commands, image, texture.handle.get());
         return texture;
     }
 }

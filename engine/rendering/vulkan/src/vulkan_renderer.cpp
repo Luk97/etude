@@ -7,6 +7,7 @@
 #include "vulkan_dynamic_rendering.h"
 #include "vulkan_fence.h"
 #include "vulkan_frame.h"
+#include "vulkan_gpu_timer.h"
 #include "vulkan_image.h"
 #include "vulkan_pipeline.h"
 #include "vulkan_sprite_batch.h"
@@ -15,6 +16,7 @@
 #include "vulkan_texture_table.h"
 
 #include <etude/core/assert.h>
+#include <etude/core/clock.h>
 #include <etude/core/log.h>
 #include <etude/platform/window.h>
 
@@ -51,27 +53,34 @@ namespace etude::vulkan {
                 vkDeviceWaitIdle(context.device.get());
             }
 
-            /// @brief Draws the sprites over the clear color into the next swapchain image and presents it.
+            /// @brief Draws the sprites into the scene image, then copies it into the window and presents the frame.
             void render(const Mat3& viewProjection, std::span<const Sprite> sprites) override {
+                times = {};
+
                 // A minimized window has no area, and Vulkan cannot create a swapchain without one.
                 const Size size = window.clientSize();
                 if (size.width == 0 || size.height == 0) {
                     return;
                 }
                 if (!swapchain || swapchain->size != size) {
-                    recreateSwapchain(size);
+                    recreateTargets(size);
                 }
 
-                // The objects of a frame are free again once the GPU has finished the frame that used them last.
+                // The objects of a frame are free again once the GPU has finished the frame that used them last. By
+                // then it has also written the timestamps of that frame.
                 Frame& frame = frames[frameIndex];
                 waitForFence(context.device.get(), frame.inFlight.get());
+                times.gpu = readTiming(context.device.get(), frame.timer, context.gpu.timestampPeriod);
 
                 const std::optional<std::uint32_t> imageIndex =
                     acquireImage(context.device.get(), *swapchain, frame.imageAvailable.get());
                 if (!imageIndex) {
-                    destroySwapchain();
+                    destroyTargets();
                     return;
                 }
+
+                // From here on the CPU no longer waits, so the clock measures only its work.
+                const Clock work;
 
                 // Reset only now that the frame is sure to be submitted, otherwise the next wait would block forever.
                 resetFence(context.device.get(), frame.inFlight.get());
@@ -79,8 +88,10 @@ namespace etude::vulkan {
                 uploadSprites(context.gpu.device, context.device.get(), frame.sprites, sprites);
                 record(frame, *imageIndex, viewProjection);
                 submit(frame, *imageIndex);
+                times.cpu = work.elapsed();
+
                 if (!presentImage(context.queue, *swapchain, *imageIndex)) {
-                    destroySwapchain();
+                    destroyTargets();
                 }
                 frameIndex = (frameIndex + 1) % framesInFlight;
             }
@@ -101,11 +112,21 @@ namespace etude::vulkan {
                 return static_cast<TextureId>(index);
             }
 
+            FrameTimes frameTimes() const override {
+                return times;
+            }
+
         private:
-            void recreateSwapchain(Size size) {
-                destroySwapchain();
+            /// @brief Creates the swapchain for the window and the scene image in the same size and format, so the blit
+            /// into the window only copies.
+            void recreateTargets(Size size) {
+                destroyTargets();
                 swapchain = createSwapchain(
                     context.gpu.device, context.device.get(), context.surface.get(), surfaceFormat, size
+                );
+                sceneImage = createImage(
+                    context.gpu.device, context.device.get(), swapchain->size, surfaceFormat.format,
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
                 );
                 logInfo(
                     "Swapchain {} x {} with {} images", swapchain->size.width, swapchain->size.height,
@@ -113,18 +134,21 @@ namespace etude::vulkan {
                 );
             }
 
-            /// @brief Destroys the swapchain once the GPU no longer draws into its images, the next frame creates a
-            /// new one. A surface belongs to one swapchain at a time, so the old one has to go first.
-            void destroySwapchain() {
+            /// @brief Destroys the swapchain and the scene image once the GPU no longer uses them, the next frame
+            /// creates new ones. A surface belongs to one swapchain at a time, so the old one has to go first.
+            void destroyTargets() {
                 check(vkDeviceWaitIdle(context.device.get()), "vkDeviceWaitIdle");
+                sceneImage.reset();
                 swapchain.reset();
             }
 
-            /// @brief Records the commands for one frame: make the image a color target, clear it, draw the sprites of
-            /// the frame and hand the image over for presenting.
-            void record(const Frame& frame, std::uint32_t imageIndex, const Mat3& viewProjection) const {
+            /// @brief Records the commands for one frame: draw the sprites into the scene image, then copy it into the
+            /// swapchain image and hand that over for presenting. The timer measures only the drawing, because the copy
+            /// waits for the display.
+            void record(Frame& frame, std::uint32_t imageIndex, const Mat3& viewProjection) const {
                 const VkCommandBuffer commands = frame.commands;
-                const VkImage image = swapchain->images[imageIndex];
+                const VkImage scene = sceneImage->handle.get();
+                const VkImage target = swapchain->images[imageIndex];
                 const VkRect2D area{
                     .extent = {
                         .width = static_cast<std::uint32_t>(swapchain->size.width),
@@ -133,21 +157,28 @@ namespace etude::vulkan {
                 };
 
                 beginCommands(commands);
-                transitionToColorTarget(commands, image);
-                beginRendering(commands, swapchain->views[imageIndex].get(), area, clearColor);
+                beginTiming(commands, frame.timer);
+                transitionToColorTarget(commands, scene);
+                beginRendering(commands, sceneImage->view.get(), area, clearColor);
                 recordSprites(commands, pipeline, textureTable.set, frame.sprites, viewProjection);
                 endRendering(commands);
-                transitionToPresent(commands, image);
+                endTiming(commands, frame.timer);
+
+                transitionToBlitSource(commands, scene);
+                transitionToBlitTarget(commands, target);
+                blitImage(commands, scene, target, swapchain->size);
+                transitionToPresent(commands, target);
                 endCommands(commands);
             }
 
-            /// @brief Sends the recorded commands to the GPU. They start drawing once the image is acquired, then
-            /// signal renderFinished for presenting and the fence of the frame for the CPU.
+            /// @brief Sends the recorded commands to the GPU. The scene is drawn right away, only the blit waits for
+            /// the acquired image. At the end they signal renderFinished for presenting and the fence of the frame for
+            /// the CPU.
             void submit(const Frame& frame, std::uint32_t imageIndex) const {
                 const VkSemaphoreSubmitInfo wait{
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                     .semaphore = frame.imageAvailable.get(),
-                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .stageMask = VK_PIPELINE_STAGE_2_BLIT_BIT,
                 };
                 const VkSemaphoreSubmitInfo signal{
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
@@ -168,6 +199,8 @@ namespace etude::vulkan {
             std::array<Frame, framesInFlight> frames;
             std::size_t frameIndex = 0;
             std::optional<Swapchain> swapchain;
+            std::optional<GpuImage> sceneImage;
+            FrameTimes times;
             Color clearColor;
         };
     }

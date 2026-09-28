@@ -9,6 +9,7 @@ namespace etude::vulkan {
             .commands = allocateCommandBuffer(device, pool),
             .imageAvailable = createSemaphore(device),
             .inFlight = createFence(device, VK_FENCE_CREATE_SIGNALED_BIT),
+            .timer = createGpuTimer(device),
         };
     }
 }

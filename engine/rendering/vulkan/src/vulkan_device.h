@@ -15,6 +15,9 @@ namespace etude::vulkan {
     struct Gpu {
         VkPhysicalDevice device = nullptr;
         std::uint32_t queueFamily = 0;
+
+        /// @brief Nanoseconds per tick of the clock that GPU timestamps count in.
+        float timestampPeriod = 0.0f;
     };
 
     /// @brief Picks the graphics card to render with. The first dedicated card wins, otherwise the first suitable one,
