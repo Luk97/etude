@@ -4,6 +4,7 @@
 #include <etude/scene/entity.h>
 #include <etude/scene/sparse_set.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -68,6 +69,16 @@ namespace etude {
             return *component;
         }
 
+        /// @brief Calls the callback with each entity that has all of the compoents, together with references to
+        /// them. It runs through the smallest of their storages from the back, so the callback may destroy the current
+        /// entity or remove its components: only entities that were visited already move into its place. Destroying
+        /// other entities during the loop is not safe.
+        template <typename... Components>
+            requires(sizeof...(Components) > 0)
+        void each(this auto& self, auto&& callback) {
+            eachIn(callback, self.template findStorage<Components>()...);
+        }
+
     private:
         /// @brief Gives T the constness of the world that Self refers to.
         template <typename Self, typename T>
@@ -103,6 +114,24 @@ namespace etude {
                 storages[index] = std::make_unique<SparseSet<Component>>();
             }
             return static_cast<SparseSet<Component>&>(*storages[index]);
+        }
+
+        /// @brief Does the work of each once the storages are looked up. Without a storage for one of the component
+        /// types, no entity can have all of them.
+        static void eachIn(auto& callback, auto*... sets) {
+            if ((... || (sets == nullptr))) {
+                return;
+            }
+            const auto bySize = [](const auto* left, const auto* right) { return left->size() < right->size(); };
+            const std::vector<Entity>* entities = std::min({&sets->entities()...}, bySize);
+
+            // A span would dangle if the callback adds a component and the vector reallocatse, so index the vector.
+            for (std::size_t i = entities->size(); i > 0; --i) {
+                const Entity entity = (*entities)[i - 1];
+                if ((... && sets->contains(entity))) {
+                    callback(entity, *sets->find(entity)...);
+                }
+            }
         }
 
         /// @brief The current generation of each index. Destroying an entity counts it up, which kills its old handles.

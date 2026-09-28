@@ -74,6 +74,11 @@ namespace etude {
             return self.contains(entity) ? &self.values[self.sparse[indexOf(entity)]] : nullptr;
         }
 
+        /// @brief Returns the entities with a component here, in the same order as their components.
+        const std::vector<Entity>& entities() const {
+            return dense;
+        }
+
     private:
         static constexpr std::uint32_t absent = std::numeric_limits<std::uint32_t>::max();
 

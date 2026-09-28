@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 using etude::Entity;
 using etude::World;
@@ -163,4 +164,77 @@ TEST_CASE("World hands out const components from a const world") {
     STATIC_REQUIRE(std::is_same_v<decltype(world.get<Position>(entity)), Position&>);
     STATIC_REQUIRE(std::is_same_v<decltype(constant.get<Position>(entity)), const Position&>);
     CHECK(&constant.get<Position>(entity) == &world.get<Position>(entity));
+}
+
+TEST_CASE("World visits each entity that has all of the components") {
+    World world;
+    const Entity both = world.create();
+    const Entity positioned = world.create();
+    const Entity labeled = world.create();
+    world.add(both, Position{});
+    world.add(both, Label{"both"});
+    world.add(positioned, Position{});
+    world.add(labeled, Label{"labeled"});
+
+    std::vector<Entity> visited;
+    world.each<Position, Label>([&](Entity entity, Position& position, const Label& label) {
+        visited.push_back(entity);
+        CHECK(label.text == "both");
+        position.x = 5.0f;
+    });
+    CHECK(visited == std::vector{both});
+    CHECK(world.get<Position>(both).x == 5.0f);
+}
+
+TEST_CASE("World runs through the smallest storage from the back") {
+    World world;
+    const Entity first = world.create();
+    const Entity second = world.create();
+    const Entity third = world.create();
+    world.add(first, Position{});
+    world.add(second, Position{});
+    world.add(third, Position{});
+    world.add(third, Label{});
+    world.add(first, Label{});
+
+    std::vector<Entity> visited;
+    world.each<Position, Label>([&](Entity entity, Position&, Label&) { visited.push_back(entity); });
+    CHECK(visited == std::vector{first, third});
+}
+
+TEST_CASE("World lets the callback of each destroy the current entity") {
+    World world;
+    for (int i = 0; i < 4; ++i) {
+        world.add(world.create(), Position{static_cast<float>(i), 0.0f});
+    }
+
+    std::vector<float> visited;
+    world.each<Position>([&](Entity entity, const Position& position) {
+        visited.push_back(position.x);
+        if (position.x < 2.0f) {
+            world.destroy(entity);
+        }
+    });
+    CHECK(visited == std::vector{3.0f, 2.0f, 1.0f, 0.0f});
+    CHECK(world.size() == 2);
+}
+
+TEST_CASE("World visits nothing for a component that no entity has") {
+    World world;
+    world.add(world.create(), Position{});
+    int visits = 0;
+    world.each<Position, Label>([&](Entity, Position&, Label&) { ++visits; });
+    CHECK(visits == 0);
+}
+
+TEST_CASE("World hands out const components in each from a const world") {
+    World world;
+    world.add(world.create(), Position{});
+    const World& constant = world;
+    int visits = 0;
+    constant.each<Position>([&](Entity, auto& position) {
+        STATIC_REQUIRE(std::is_same_v<decltype(position), const Position&>);
+        ++visits;
+    });
+    CHECK(visits == 1);
 }
