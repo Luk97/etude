@@ -69,7 +69,7 @@ namespace etude {
             return *component;
         }
 
-        /// @brief Calls the callback with each entity that has all of the compoents, together with references to
+        /// @brief Calls the callback with each entity that has all of the components, together with references to
         /// them. It runs through the smallest of their storages from the back, so the callback may destroy the current
         /// entity or remove its components: only entities that were visited already move into its place. Destroying
         /// other entities during the loop is not safe.
@@ -125,7 +125,7 @@ namespace etude {
             const auto bySize = [](const auto* left, const auto* right) { return left->size() < right->size(); };
             const std::vector<Entity>* entities = std::min({&sets->entities()...}, bySize);
 
-            // A span would dangle if the callback adds a component and the vector reallocatse, so index the vector.
+            // A span would dangle if the callback adds a component and the vector reallocates, so index the vector.
             for (std::size_t i = entities->size(); i > 0; --i) {
                 const Entity entity = (*entities)[i - 1];
                 if ((... && sets->contains(entity))) {
