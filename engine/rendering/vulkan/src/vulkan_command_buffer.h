@@ -24,6 +24,6 @@ namespace etude::vulkan {
     );
 
     /// @brief Sends the command buffer to the queue and blocks until the queue is idle. Only for rare work outside of
-    /// the frame such as uploads, because it also waits for the frames in flight.
+    /// the frames, such as uploads, because it also waits for the frames in flight.
     void submitAndWait(VkQueue queue, VkCommandBuffer commands);
 }

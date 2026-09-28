@@ -26,9 +26,9 @@ namespace etude::vulkan {
             };
         }
 
-        /// @brief Copies the pixels of the image into the target and leaves it for fragment shaders. The CPU cannot
-        /// write into an optimally tiled image, whose texels lie in an order that only the GPU knows. So the pixels
-        /// go into a staging buffer first, and the GPU copies them from there.
+        /// @brief Copies the pixels of the image into the target and leaves it ready for fragment shaders. The CPU
+        /// cannot write into an optimally tiled image, whose texels lie in an order that only the GPU knows. So the
+        /// pixels go into a staging buffer first, and the GPU copies them from there.
         void copyPixels(
             VkPhysicalDevice physicalDevice,
             VkDevice device,
