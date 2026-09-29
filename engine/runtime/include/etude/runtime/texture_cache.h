@@ -15,9 +15,9 @@ namespace etude {
     public:
         TextureCache(Renderer& renderer, std::filesystem::path assetFolder);
 
-        /// @brief Returns the texture at the path relative to the asset folder and loads it the first time. A texture
-        /// that cannot be loaded is logged once and gives nothing from then on, so that it does not flood the log in
-        /// every frame.
+        /// @brief Returns the texture at the path relative to the asset folder and loads it the first time, which makes
+        /// that frame wait for the copy to the GPU. A texture that cannot be loaded is logged once and gives nothing
+        /// from then on, so that it does not flood the log in every frame.
         std::optional<LoadedTexture> get(const std::string& path);
 
     private:

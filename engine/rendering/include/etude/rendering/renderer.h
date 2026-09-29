@@ -37,7 +37,7 @@ namespace etude {
         virtual void setClearColor(Color color) = 0;
 
         /// @brief Copies the image to the GPU and returns the id under which it can be drawn. Waits until the copy is
-        /// done, so textures are created while loading and not in every frame.
+        /// done, so the frame that creates a texture takes that much longer.
         virtual TextureId createTexture(const Image& image) = 0;
 
         /// @brief Returns the times of the last frame. The GPU time belongs to an earlier frame, because the renderer
