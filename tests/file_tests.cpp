@@ -33,6 +33,24 @@ TEST_CASE("writeFile replaces what the file held before") {
     CHECK(*bytes == std::vector<std::uint8_t>{'x'});
 }
 
+TEST_CASE("writeFile keeps the old content when it cannot write the new one") {
+    const std::filesystem::path path = temporaryFile("etude_keep_file_test.txt");
+    REQUIRE(etude::writeFile(path, "old"));
+
+    // A folder in the place of the second file makes the write fail before the old file is touched.
+    std::filesystem::path blocker = path;
+    blocker += ".tmp";
+    std::filesystem::create_directory(blocker);
+    const auto written = etude::writeFile(path, "new");
+    const auto bytes = etude::readFile(path);
+    std::filesystem::remove(blocker);
+    std::filesystem::remove(path);
+
+    CHECK_FALSE(written);
+    REQUIRE(bytes);
+    CHECK(*bytes == std::vector<std::uint8_t>{'o', 'l', 'd'});
+}
+
 TEST_CASE("readFile and writeFile say why they fail") {
     const auto read = etude::readFile(temporaryFile("etude_missing_file.txt"));
     REQUIRE_FALSE(read);
