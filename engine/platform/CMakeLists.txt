@@ -15,3 +15,5 @@ target_sources(etude_platform
 target_compile_features(etude_platform PUBLIC cxx_std_23)
 target_compile_definitions(etude_platform PRIVATE UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_link_libraries(etude_platform PUBLIC etude::core etude::math PRIVATE etude::warnings user32)
+# Every program that links the platform runs with UTF-8 as its code page, so that narrow strings in paths mean UTF-8.
+target_sources(etude_platform INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/utf8.manifest)

@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <string>
 #include <vector>
 
 namespace {
@@ -40,4 +41,15 @@ TEST_CASE("readFile and writeFile say why they fail") {
     const auto written = etude::writeFile(temporaryFile("etude_missing_folder") / "file.txt", "text");
     REQUIRE_FALSE(written);
     CHECK(written.error() == "the file cannot be written");
+}
+
+TEST_CASE("Paths from UTF-8 strings find files with umlauts") {
+    // Windows reads the narrow strings of a path in the code page of the program, which the manifest of the platform
+    // module sets to UTF-8.
+    const std::filesystem::path folder = std::filesystem::temp_directory_path();
+    const std::filesystem::path path = folder / std::filesystem::path(u8"etude_häschen.txt");
+    REQUIRE(etude::writeFile(path, "x"));
+    const bool found = std::filesystem::exists(folder / std::string("etude_h\xc3\xa4schen.txt"));
+    std::filesystem::remove(path);
+    CHECK(found);
 }
