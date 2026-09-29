@@ -2,6 +2,7 @@
 
 #include <etude/scene/world.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -81,6 +82,16 @@ TEST_CASE("World starts the generation of an index again at 0 after 4096 reuses"
     // The known limit of 12 bits of generation: the very first handle looks alive again.
     CHECK(entity == first);
     CHECK(world.alive(first));
+}
+
+TEST_CASE("World hands out all 2^20 indices") {
+    World world;
+    Entity last{};
+    for (std::uint32_t i = 0; i <= etude::entityIndexMask; ++i) {
+        last = world.create();
+    }
+    CHECK(etude::indexOf(last) == etude::entityIndexMask);
+    CHECK(world.size() == etude::entityIndexMask + 1);
 }
 
 TEST_CASE("World keeps a free index free when an old handle comes around with its generation") {

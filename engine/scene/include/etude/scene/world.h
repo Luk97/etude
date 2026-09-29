@@ -18,6 +18,7 @@ namespace etude {
     class World {
     public:
         /// @brief Creates an entity, reusing the index of a destroyed one with the next generation if there is one.
+        /// Stops the program once all 2^20 indices are taken, since more entities would break the handles.
         Entity create();
 
         /// @brief Destroys the entity together with its components, after which it and all copies of its handle no

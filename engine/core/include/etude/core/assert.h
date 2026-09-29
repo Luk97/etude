@@ -8,7 +8,7 @@
 namespace etude {
 
     /// @brief Reports a failed assertion with file, line and function, then aborts the program.
-    /// Called by ETUDE_ASSERT. The default argument captures the location of the assertion, not of this function.
+    /// Called by the macros below. The default argument captures the location of the assertion, not of this function.
     [[noreturn]] inline void assertFailed(
         const char* expression,
         std::source_location location = std::source_location::current()
@@ -25,4 +25,7 @@ namespace etude {
 #else
     #define ETUDE_ASSERT(expression) ((expression) ? static_cast<void>(0) : ::etude::assertFailed(#expression))
 #endif
+
+    /// @brief Checks like ETUDE_ASSERT, but in release builds too, where a broken condition would corrupt data quietly.
+#define ETUDE_CHECK(expression) ((expression) ? static_cast<void>(0) : ::etude::assertFailed(#expression))
 }

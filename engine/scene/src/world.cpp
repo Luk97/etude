@@ -12,7 +12,7 @@ namespace etude {
             return makeEntity(index, generations[index]);
         }
 
-        ETUDE_ASSERT(generations.size() <= entityIndexMask);
+        ETUDE_CHECK(generations.size() <= entityIndexMask);
         generations.push_back(0);
         occupied.push_back(true);
         return makeEntity(static_cast<std::uint32_t>(generations.size() - 1), 0);
