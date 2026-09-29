@@ -4,6 +4,7 @@
 #include <etude/scene/component_json.h>
 #include <etude/scene/component_registry.h>
 #include <etude/scene/components.h>
+#include <etude/scene/reflection.h>
 #include <etude/scene/world.h>
 
 #include <array>
@@ -11,6 +12,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 using etude::Json;
@@ -27,6 +29,18 @@ namespace {
         REQUIRE_FALSE(read);
         return read.error();
     }
+
+    // A component whose fields have no default values, as one written in a hurry might look.
+    struct Bare {
+        float value;
+        int count;
+
+        static constexpr std::string_view typeName = "Bare";
+        static constexpr std::tuple fields{
+            etude::Field{"value", &Bare::value},
+            etude::Field{"count", &Bare::count},
+        };
+    };
 }
 
 TEST_CASE("writeComponent writes the fields in the order of the field list") {
@@ -60,6 +74,13 @@ TEST_CASE("readComponent keeps the default values of the fields that the object 
     REQUIRE(read);
     CHECK(read->rotation == 45.0f);
     CHECK(read->scale == etude::Vec2{1.0f, 1.0f});
+}
+
+TEST_CASE("readComponent starts from zero for fields without a default value") {
+    const auto read = etude::readComponent<Bare>(json("{}"));
+    REQUIRE(read);
+    CHECK(read->value == 0.0f);
+    CHECK(read->count == 0);
 }
 
 TEST_CASE("readComponent refuses a member that is no field") {

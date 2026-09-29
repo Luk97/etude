@@ -38,8 +38,8 @@ namespace etude {
     }
 
     /// @brief Reads a component from a JSON object as writeComponent writes it. Fields that the object leaves out
-    /// keep their default values, so that older scenes still load after a component gets a new field. A member that is
-    /// no field is an error, because it is most likely a typing mistake.
+    /// keep their default values, or become zero without one, so that older scenes still load after a component gets
+    /// a new field. A member that is no field is an error, because it is most likely a typing mistake.
     template <Reflected Component>
     std::expected<Component, std::string> readComponent(const Json& json) {
         const Json::Object* object = json.tryGet<Json::Object>();
@@ -52,7 +52,7 @@ namespace etude {
             }
         }
 
-        Component component;
+        Component component{};
         std::string error;
         const auto readField = [&](const auto& field) {
             const Json* value = json.find(field.name);
