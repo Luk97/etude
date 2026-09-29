@@ -25,6 +25,10 @@ namespace etude {
     void drawScene(const World& world, Size window, const TextureLookup& textures, RenderList& list) {
         std::optional<std::uint32_t> cameraIndex;
         world.each<Camera, Transform2D>([&](Entity entity, const Camera& camera, const Transform2D& transform) {
+            // Written this way, it also skips a zoom that is NaN.
+            if (!(camera.zoom > 0.0f)) {
+                return;
+            }
             if (cameraIndex && *cameraIndex < indexOf(entity)) {
                 return;
             }

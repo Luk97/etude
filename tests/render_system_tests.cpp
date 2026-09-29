@@ -120,3 +120,17 @@ TEST_CASE("drawScene takes the Camera with the lowest index and keeps the camera
     etude::drawScene(world, window, fakeTexture, list);
     CHECK(list.camera.zoom == 2.0f);
 }
+
+TEST_CASE("drawScene skips a Camera without a positive zoom") {
+    World world;
+    const Entity broken = world.create();
+    world.add(broken, etude::Transform2D{});
+    world.add(broken, etude::Camera{0.0f});
+    const Entity working = world.create();
+    world.add(working, etude::Transform2D{});
+    world.add(working, etude::Camera{2.0f});
+
+    RenderList list;
+    etude::drawScene(world, window, fakeTexture, list);
+    CHECK(list.camera.zoom == 2.0f);
+}

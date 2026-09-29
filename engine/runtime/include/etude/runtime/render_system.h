@@ -25,6 +25,7 @@ namespace etude {
     /// @brief Adds a sprite to the list for each entity with a Transform2D and a SpriteRenderer, ordered by layer and
     /// within a layer by entity index, so that later entities of a scene file cover earlier ones. Entities whose
     /// texture cannot be loaded stay invisible. The Camera with the lowest entity index, if there is one, points the
-    /// camera of the list and ignores the rotation and scale of its transform.
+    /// camera of the list and ignores the rotation and scale of its transform. A Camera without a positive zoom is
+    /// skipped, since it would divide by zero or mirror the picture.
     void drawScene(const World& world, Size window, const TextureLookup& textures, RenderList& list);
 }
