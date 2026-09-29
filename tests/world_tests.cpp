@@ -83,6 +83,35 @@ TEST_CASE("World starts the generation of an index again at 0 after 4096 reuses"
     CHECK(world.alive(first));
 }
 
+TEST_CASE("World keeps a free index free when an old handle comes around with its generation") {
+    World world;
+    const Entity first = world.create();
+    Entity entity = first;
+    for (int i = 0; i < 4095; ++i) {
+        world.destroy(entity);
+        entity = world.create();
+    }
+    world.destroy(entity);
+
+    // The free index carries generation 0 again, just like the very first handle.
+    CHECK_FALSE(world.alive(first));
+    world.destroy(first);
+    CHECK(world.size() == 0);
+    CHECK(world.create() != world.create());
+}
+
+TEST_CASE("World ignores a handle from another world where its own index is free") {
+    World one;
+    World other;
+    other.destroy(other.create());
+    one.destroy(one.create());
+    const Entity handle = one.create();
+
+    CHECK_FALSE(other.alive(handle));
+    other.destroy(handle);
+    CHECK(other.size() == 0);
+}
+
 TEST_CASE("World lists the entities that are alive in the order of their indices") {
     World world;
     const Entity first = world.create();

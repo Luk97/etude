@@ -8,11 +8,13 @@ namespace etude {
         if (!freeIndices.empty()) {
             const std::uint32_t index = freeIndices.back();
             freeIndices.pop_back();
+            occupied[index] = true;
             return makeEntity(index, generations[index]);
         }
 
         ETUDE_ASSERT(generations.size() <= entityIndexMask);
         generations.push_back(0);
+        occupied.push_back(true);
         return makeEntity(static_cast<std::uint32_t>(generations.size() - 1), 0);
     }
 
@@ -28,12 +30,13 @@ namespace etude {
 
         const std::uint32_t index = indexOf(entity);
         generations[index] = (generations[index] + 1) & entityGenerationMask;
+        occupied[index] = false;
         freeIndices.push_back(index);
     }
 
     bool World::alive(Entity entity) const {
         const std::uint32_t index = indexOf(entity);
-        return index < generations.size() && generations[index] == generationOf(entity);
+        return index < generations.size() && occupied[index] && generations[index] == generationOf(entity);
     }
 
     std::size_t World::size() const {
@@ -41,15 +44,10 @@ namespace etude {
     }
 
     std::vector<Entity> World::entities() const {
-        std::vector<bool> isFree(generations.size());
-        for (const std::uint32_t index : freeIndices) {
-            isFree[index] = true;
-        }
-
         std::vector<Entity> result;
         result.reserve(size());
         for (std::uint32_t index = 0; index < generations.size(); ++index) {
-            if (!isFree[index]) {
+            if (occupied[index]) {
                 result.push_back(makeEntity(index, generations[index]));
             }
         }

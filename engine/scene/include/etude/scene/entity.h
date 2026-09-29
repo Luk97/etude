@@ -15,7 +15,7 @@ namespace etude {
     inline constexpr std::uint32_t entityIndexMask = (1u << entityIndexBits) - 1;
 
     /// @brief Generations count up to 4095 and then start again at 0. After 4096 reuses of the same index, a very old
-    /// handle can therefore look alive again, which is rare enough to accept.
+    /// handle can therefore look alive again while a newer entity holds that index, which is rare enough to accept.
     inline constexpr std::uint32_t entityGenerationMask = (1u << (32 - entityIndexBits)) - 1;
 
     constexpr Entity makeEntity(std::uint32_t index, std::uint32_t generation) {

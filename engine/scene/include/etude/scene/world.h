@@ -140,6 +140,10 @@ namespace etude {
         /// @brief The current generation of each index. Destroying an entity counts it up, which kills its old handles.
         std::vector<std::uint32_t> generations;
 
+        /// @brief Whether an entity holds the index right now. The generation alone cannot tell, because a free index
+        /// already carries the generation of its next entity.
+        std::vector<bool> occupied;
+
         /// @brief Indices of destroyed entities, which create hands out again, the most recently freed first.
         std::vector<std::uint32_t> freeIndices;
 
