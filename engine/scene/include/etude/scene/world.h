@@ -75,8 +75,9 @@ namespace etude {
 
         /// @brief Calls the callback with each entity that has all of the components, together with references to
         /// them. It runs through the smallest of their storages from the back, so the callback may destroy the current
-        /// entity or remove its components: only entities that were visited already move into its place. Destroying
-        /// other entities during the loop is not safe.
+        /// entity or remove its components: only entities that were visited already move into its place. The
+        /// references then belong to that other entity and must not be used any more. Destroying other entities or
+        /// removing their components during the loop is not safe.
         template <typename... Components>
             requires(sizeof...(Components) > 0)
         void each(this auto& self, auto&& callback) {
