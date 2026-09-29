@@ -7,7 +7,11 @@
 #include <etude/platform/window.h>
 #include <etude/render2d/render_list.h>
 #include <etude/rendering/renderer.h>
+#include <etude/runtime/texture_cache.h>
+#include <etude/scene/component_registry.h>
+#include <etude/scene/world.h>
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -15,11 +19,14 @@
 namespace etude {
 
     /// @brief Runs the game loop: handles the window messages, calls the game once per frame and once per fixed
-    /// simulation step, shows frames and steps per second in the title and limits the frame rate.
+    /// simulation step, draws the world of the running scene, shows frames and steps per second in the title and
+    /// limits the frame rate.
     /// A game derives from Application and overrides onFrame and onStep, the loop itself stays the same.
     class Application {
     public:
-        Application(std::string_view title, int width, int height);
+        /// @brief Opens the window. The textures of the world load from the asset folder, which is the working
+        /// directory if left out.
+        Application(std::string_view title, int width, int height, std::filesystem::path assetFolder = {});
         virtual ~Application() = default;
 
         Application(const Application&) = delete;
@@ -36,8 +43,8 @@ namespace etude {
         /// @brief Called once per simulation step, 60 times per second at any frame rate.
         virtual void onStep(FixedTimestep::Duration step);
 
-        /// @brief Called once per frame after the simulation steps, right before the frame is drawn. The game adds the
-        /// sprites of this frame to the list, which starts empty every time, and may move the camera.
+        /// @brief Called once per frame after the simulation steps, right before the frame is drawn. The list already
+        /// holds the sprites of the world, the game may add its own on top of them and move the camera.
         virtual void onDraw(RenderList& list);
 
         /// @brief Sets the frames per second.
@@ -52,10 +59,19 @@ namespace etude {
         /// @brief Returns the size of the drawing area of the window in pixels, 0 x 0 while it is minimized.
         Size windowSize() const;
 
+        /// @brief Returns the entities and components of the running scene, which the loop draws in every frame.
+        World& world();
+
+        /// @brief Returns the component types that scenes can hold, starting with those of the engine.
+        const ComponentRegistry& registry() const;
+
     private:
         std::string title;
         Window window;
         std::unique_ptr<Renderer> renderer;
+        TextureCache textureCache;
+        ComponentRegistry componentTypes;
+        World sceneWorld;
         RenderList renderList;
         FixedTimestep timestep;
         FrameLimiter limiter;

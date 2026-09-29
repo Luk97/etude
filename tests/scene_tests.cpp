@@ -1,13 +1,18 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <etude/core/file.h>
 #include <etude/json/json.h>
 #include <etude/math/vec2.h>
 #include <etude/scene/component_registry.h>
 #include <etude/scene/components.h>
 #include <etude/scene/reflection.h>
+#include <etude/scene/scene_file.h>
 #include <etude/scene/scene_json.h>
 #include <etude/scene/world.h>
 
+#include <filesystem>
+#include <format>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -140,4 +145,39 @@ TEST_CASE("readScene names the place in the scene that it cannot read") {
         errorOf(R"({"version": 1, "entities": [{}, {"Camera": {"zoom": "far"}}]})") ==
         "entities[1].Camera.zoom: expected a number in the range of a float"
     );
+}
+
+TEST_CASE("saveScene and loadScene keep a scene in a file, which ends with a line break") {
+    const etude::ComponentRegistry registry = makeRegistry();
+    World world;
+    world.add(world.create(), Health{42, 0.25f});
+    const std::filesystem::path path = std::filesystem::temp_directory_path() / "etude_scene_file_test.json";
+
+    REQUIRE(etude::saveScene(path, world, registry));
+    const auto bytes = etude::readFile(path);
+    const auto loaded = etude::loadScene(path, registry);
+    std::filesystem::remove(path);
+    REQUIRE(bytes);
+    CHECK(bytes->back() == '\n');
+    REQUIRE(loaded);
+    CHECK(etude::writeScene(*loaded, registry) == etude::writeScene(world, registry));
+}
+
+TEST_CASE("loadScene names the file and points at the place that it cannot read") {
+    const etude::ComponentRegistry registry = makeRegistry();
+    const std::filesystem::path path = std::filesystem::temp_directory_path() / "etude_broken_scene_test.json";
+
+    REQUIRE(etude::writeFile(path, "{\n    \"version\": 1,\n    \"entities\": [,]\n}\n"));
+    const auto broken = etude::loadScene(path, registry);
+    REQUIRE(etude::writeFile(path, R"({"version": 2, "entities": []})"));
+    const auto wrongVersion = etude::loadScene(path, registry);
+    std::filesystem::remove(path);
+    const auto missing = etude::loadScene(path, registry);
+
+    REQUIRE_FALSE(broken);
+    CHECK_THAT(broken.error(), Catch::Matchers::StartsWith(std::format("Cannot load {}:3:18: ", path.string())));
+    REQUIRE_FALSE(wrongVersion);
+    CHECK(wrongVersion.error() == std::format("Cannot load {}: the scene has to have version 1.", path.string()));
+    REQUIRE_FALSE(missing);
+    CHECK(missing.error() == std::format("Cannot load {}: the file cannot be opened.", path.string()));
 }

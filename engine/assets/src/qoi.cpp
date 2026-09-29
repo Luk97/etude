@@ -1,6 +1,6 @@
 #include <etude/assets/qoi.h>
 
-#include "file.h"
+#include <etude/core/file.h>
 
 #include <algorithm>
 #include <array>

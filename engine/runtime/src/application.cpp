@@ -3,9 +3,12 @@
 #include <etude/core/clock.h>
 #include <etude/core/log.h>
 #include <etude/rendering/vulkan/vulkan_renderer.h>
+#include <etude/runtime/render_system.h>
 
 #include <chrono>
 #include <format>
+#include <string>
+#include <utility>
 
 namespace etude {
 
@@ -20,9 +23,11 @@ namespace etude {
         }
     }
 
-    Application::Application(std::string_view title, int width, int height)
-        : title(title), window(title, width, height), renderer(createVulkanRenderer(window)), timestep(stepsPerSecond),
-          limiter(initialFramesPerSecond) {}
+    Application::Application(std::string_view title, int width, int height, std::filesystem::path assetFolder)
+        : title(title), window(title, width, height), renderer(createVulkanRenderer(window)),
+          textureCache(*renderer, std::move(assetFolder)), timestep(stepsPerSecond), limiter(initialFramesPerSecond) {
+        addBuiltinComponents(componentTypes);
+    }
 
     void Application::run() {
         Clock frameClock;
@@ -31,6 +36,7 @@ namespace etude {
         int steps = 0;
         std::chrono::nanoseconds cpuTime{};
         std::chrono::nanoseconds gpuTime{};
+        const TextureLookup lookup = [this](const std::string& path) { return textureCache.get(path); };
 
         while (!window.shouldClose()) {
             window.pollEvents();
@@ -46,8 +52,10 @@ namespace etude {
             steps += dueSteps;
             ++frames;
 
-            // The sprites start anew in every frame, while the camera stays where the game left it.
+            // The sprites start anew in every frame, those of the world first. The camera stays where the scene or the
+            // game left it.
             renderList.sprites.clear();
+            drawScene(sceneWorld, window.clientSize(), lookup, renderList);
             onDraw(renderList);
             const std::chrono::nanoseconds gameTime = game.elapsed();
 
@@ -96,5 +104,13 @@ namespace etude {
 
     Size Application::windowSize() const {
         return window.clientSize();
+    }
+
+    World& Application::world() {
+        return sceneWorld;
+    }
+
+    const ComponentRegistry& Application::registry() const {
+        return componentTypes;
     }
 }

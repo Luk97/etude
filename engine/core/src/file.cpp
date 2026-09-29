@@ -1,4 +1,4 @@
-#include "file.h"
+#include <etude/core/file.h>
 
 #include <fstream>
 #include <system_error>
@@ -18,5 +18,17 @@ namespace etude {
             return std::unexpected("the file cannot be read");
         }
         return bytes;
+    }
+
+    std::expected<void, std::string> writeFile(const std::filesystem::path& path, std::string_view text) {
+        std::ofstream file(path, std::ios::binary);
+        file.write(text.data(), static_cast<std::streamsize>(text.size()));
+
+        // Closing flushes the buffer, so it also reports a write that only fails at the end.
+        file.close();
+        if (!file) {
+            return std::unexpected("the file cannot be written");
+        }
+        return {};
     }
 }

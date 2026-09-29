@@ -1,0 +1,74 @@
+{
+    "version": 1,
+    "entities": [
+        {
+            "Name": {
+                "value": "Camera"
+            },
+            "Transform2D": {
+                "position": [640, 360],
+                "rotation": 0,
+                "scale": [1, 1]
+            },
+            "Camera": {
+                "zoom": 1
+            }
+        },
+        {
+            "Name": {
+                "value": "Big bunny"
+            },
+            "Transform2D": {
+                "position": [640, 400],
+                "rotation": 0,
+                "scale": [8, 8]
+            },
+            "SpriteRenderer": {
+                "texture": "sprites/bunny-gray.qoi",
+                "layer": 0
+            }
+        },
+        {
+            "Name": {
+                "value": "Tilted bunny"
+            },
+            "Transform2D": {
+                "position": [520, 420],
+                "rotation": -30,
+                "scale": [3, 3]
+            },
+            "SpriteRenderer": {
+                "texture": "sprites/bunny-white.qoi",
+                "layer": 1
+            }
+        },
+        {
+            "Name": {
+                "value": "Mirrored bunny"
+            },
+            "Transform2D": {
+                "position": [760, 420],
+                "rotation": 30,
+                "scale": [-3, 3]
+            },
+            "SpriteRenderer": {
+                "texture": "sprites/bunny-brown.qoi",
+                "layer": 1
+            }
+        },
+        {
+            "Name": {
+                "value": "Upside-down bunny"
+            },
+            "Transform2D": {
+                "position": [640, 560],
+                "rotation": 180,
+                "scale": [2, 2]
+            },
+            "SpriteRenderer": {
+                "texture": "sprites/bunny-blue.qoi",
+                "layer": 2
+            }
+        }
+    ]
+}
