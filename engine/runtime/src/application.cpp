@@ -52,8 +52,8 @@ namespace etude {
             steps += dueSteps;
             ++frames;
 
-            // The sprites start anew in every frame, those of the world first. The camera stays where the scene or the
-            // game left it.
+            // The sprites start anew in every frame, those of the world first. A Camera in the world points the camera
+            // anew in every frame, without one it stays where the game left it.
             renderList.sprites.clear();
             drawScene(sceneWorld, window.clientSize(), lookup, renderList);
             onDraw(renderList);

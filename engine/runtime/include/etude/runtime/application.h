@@ -44,7 +44,8 @@ namespace etude {
         virtual void onStep(FixedTimestep::Duration step);
 
         /// @brief Called once per frame after the simulation steps, right before the frame is drawn. The list already
-        /// holds the sprites of the world, the game may add its own on top of them and move the camera.
+        /// holds the sprites of the world, and the game may add its own on top of them. It may also move the camera,
+        /// unless the world has a Camera, which points the camera anew in every frame.
         virtual void onDraw(RenderList& list);
 
         /// @brief Sets the frames per second.
