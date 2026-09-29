@@ -149,6 +149,14 @@ TEST_CASE("parseJson refuses numbers that JSON does not allow") {
     CHECK(refuses("1e400"));
 }
 
+TEST_CASE("parseJson names numbers beyond the range of a double, too large or too small") {
+    for (const std::string_view text : {"1e400", "-1e400", "1e-400"}) {
+        const auto result = etude::parseJson(text);
+        REQUIRE_FALSE(result);
+        CHECK(result.error().message == "the number is beyond the range of a double");
+    }
+}
+
 TEST_CASE("parseJson refuses broken strings") {
     CHECK(refuses("\"no end"));
     CHECK(refuses("\"raw\ttab\""));

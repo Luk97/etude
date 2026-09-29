@@ -284,7 +284,7 @@ namespace etude {
                     std::from_chars(text.data() + start, text.data() + position, number);
                 if (result.ec == std::errc::result_out_of_range) {
                     position = start;
-                    return fail("the number is too large for a double");
+                    return fail("the number is beyond the range of a double");
                 }
                 return number;
             }
