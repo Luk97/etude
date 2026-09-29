@@ -41,6 +41,10 @@ namespace etude {
         /// @brief Returns the size of the client area in physical pixels, 0 x 0 while the window is minimized.
         Size clientSize() const;
 
+        /// @brief Returns how much Windows scales the content of the display that shows the window, 1 at 96 dpi and
+        /// 1.5 at 144 dpi. It changes when the window moves to a display with another scale.
+        float dpiScale() const;
+
         /// @brief Returns the keyboard and mouse state of the current frame.
         const Input& input() const;
 

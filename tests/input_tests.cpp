@@ -79,3 +79,49 @@ TEST_CASE("Keys and mouse buttons have readable names") {
     CHECK(etude::toString(Key::Alt) == "Alt");
     CHECK(etude::toString(MouseButton::Middle) == "Middle");
 }
+
+TEST_CASE("Input counts a held key as repeated whenever the keyboard repeats it") {
+    Input input;
+    input.onKeyDown(Key::Backspace);
+    CHECK(input.repeated(Key::Backspace));
+    input.beginFrame();
+    CHECK_FALSE(input.repeated(Key::Backspace));
+
+    input.onKeyDown(Key::Backspace);
+    CHECK(input.repeated(Key::Backspace));
+    CHECK_FALSE(input.pressed(Key::Backspace));
+}
+
+TEST_CASE("Input adds up the turns of the mouse wheel within a frame") {
+    Input input;
+    input.onWheel(1.0f);
+    input.onWheel(0.5f);
+    CHECK(input.wheel() == 1.5f);
+    input.beginFrame();
+    CHECK(input.wheel() == 0.0f);
+}
+
+TEST_CASE("Input collects the text typed in a frame as UTF-8") {
+    Input input;
+    input.onCharacter(u'H');
+    input.onCharacter(u'ä');
+    CHECK(input.text() == "Hä");
+    input.beginFrame();
+    CHECK(input.text().empty());
+}
+
+TEST_CASE("Input joins a surrogate pair into one character") {
+    Input input;
+    input.onCharacter(char16_t{0xD83D});
+    input.onCharacter(char16_t{0xDE00});
+    CHECK(input.text() == "😀");
+}
+
+TEST_CASE("Input leaves control characters and lone surrogates out of the text") {
+    Input input;
+    input.onCharacter(u'\b');
+    input.onCharacter(u'\r');
+    input.onCharacter(char16_t{0x1B});
+    input.onCharacter(char16_t{0xDE00});
+    CHECK(input.text().empty());
+}

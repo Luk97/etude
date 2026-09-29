@@ -17,6 +17,7 @@ namespace etude {
         HWND handle = nullptr;
         bool closeRequested = false;
         Size clientSize;
+        UINT dpi = USER_DEFAULT_SCREEN_DPI;
         Input input;
 
         /// @brief Receives every message that Windows sends to the window.
@@ -85,6 +86,16 @@ namespace etude {
                     return Key::Control;
                 case VK_MENU:
                     return Key::Alt;
+                case VK_BACK:
+                    return Key::Backspace;
+                case VK_DELETE:
+                    return Key::Delete;
+                case VK_TAB:
+                    return Key::Tab;
+                case VK_HOME:
+                    return Key::Home;
+                case VK_END:
+                    return Key::End;
                 default:
                     return std::nullopt;
             }
@@ -141,6 +152,17 @@ namespace etude {
                 from(window).clientSize = {LOWORD(lParam), HIWORD(lParam)};
                 break;
 
+            case WM_DPICHANGED: {
+                // Windows suggests a size that keeps the window as large on the new display as it was on the old one.
+                from(window).dpi = HIWORD(wParam);
+                const auto* suggested = reinterpret_cast<const RECT*>(lParam);
+                SetWindowPos(
+                    window, nullptr, suggested->left, suggested->top, suggested->right - suggested->left,
+                    suggested->bottom - suggested->top, SWP_NOZORDER | SWP_NOACTIVATE
+                );
+                return 0;
+            }
+
             case WM_KILLFOCUS:
                 from(window).input.onFocusLost();
                 break;
@@ -157,6 +179,15 @@ namespace etude {
                 if (const auto key = toKey(wParam)) {
                     from(window).input.onKeyUp(*key);
                 }
+                break;
+
+            case WM_CHAR:
+                // TranslateMessage in pollEvents turns key presses into these, with the keyboard layout applied.
+                from(window).input.onCharacter(static_cast<char16_t>(wParam));
+                break;
+
+            case WM_MOUSEWHEEL:
+                from(window).input.onWheel(static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA);
                 break;
 
             case WM_MOUSEMOVE:
@@ -204,6 +235,7 @@ namespace etude {
             logFatal("Could not create the window, Win32 error {}", GetLastError());
             std::abort();
         }
+        native->dpi = GetDpiForWindow(native->handle);
     }
 
     Window::~Window() {
@@ -230,6 +262,10 @@ namespace etude {
 
     Size Window::clientSize() const {
         return native->clientSize;
+    }
+
+    float Window::dpiScale() const {
+        return static_cast<float>(native->dpi) / USER_DEFAULT_SCREEN_DPI;
     }
 
     const Input& Window::input() const {
