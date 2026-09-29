@@ -13,6 +13,7 @@
 
 #include <filesystem>
 #include <format>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -180,4 +181,19 @@ TEST_CASE("loadScene names the file and points at the place that it cannot read"
     CHECK(wrongVersion.error() == std::format("Cannot load {}: the scene has to have version 1.", path.string()));
     REQUIRE_FALSE(missing);
     CHECK(missing.error() == std::format("Cannot load {}: the file cannot be opened.", path.string()));
+}
+
+TEST_CASE("saveScene refuses a scene that would not load again") {
+    const etude::ComponentRegistry registry = makeRegistry();
+    World world;
+    etude::Transform2D transform;
+    transform.position.x = std::numeric_limits<float>::quiet_NaN();
+    world.add(world.create(), transform);
+    const std::filesystem::path path = std::filesystem::temp_directory_path() / "etude_unloadable_scene_test.json";
+
+    const auto saved = etude::saveScene(path, world, registry);
+    REQUIRE_FALSE(saved);
+    const std::string reason = "entities[0].Transform2D.position: expected a number in the range of a float";
+    CHECK(saved.error() == std::format("Cannot save {}, it would not load again: {}.", path.string(), reason));
+    CHECK_FALSE(std::filesystem::exists(path));
 }

@@ -33,8 +33,9 @@ namespace etude {
     std::expected<void, std::string> fromJson(const Json& json, float& value) {
         const double* number = json.tryGet<double>();
 
-        // Numbers just above the largest float still round down to it, only larger ones become infinite.
-        if (number == nullptr || std::isinf(static_cast<float>(*number))) {
+        // Numbers just above the largest float still round down to it, only larger ones become infinite. NaN never
+        // comes from JSON text, only from a world in memory, which saveScene checks with this before writing it.
+        if (number == nullptr || !std::isfinite(static_cast<float>(*number))) {
             return std::unexpected("expected a number in the range of a float");
         }
         value = static_cast<float>(*number);

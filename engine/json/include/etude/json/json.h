@@ -95,7 +95,8 @@ namespace etude {
 
     /// @brief Writes the value as JSON text with one member per line and four spaces per level, so that scene files
     /// stay readable and their diffs small. Arrays of plain values, such as a position, stay on one line. Numbers take
-    /// the shortest form that reads back to the same double. The text does not end with a line break.
+    /// the shortest form that reads back to the same double. NaN and infinity become null, because JSON has no form
+    /// for them. The text does not end with a line break.
     std::string writeJson(const Json& json);
 
     /// @brief Where and why JSON text could not be read. Line and column count from 1, the column in bytes.

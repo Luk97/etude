@@ -34,7 +34,14 @@ namespace etude {
         const World& world,
         const ComponentRegistry& registry
     ) {
-        const std::string text = writeJson(writeScene(world, registry)) + "\n";
+        const Json json = writeScene(world, registry);
+        // JSON text has no NaN and no infinity, so a scene that holds one would save but never load again.
+        if (const auto check = readScene(json, registry); !check) {
+            return std::unexpected(
+                std::format("Cannot save {}, it would not load again: {}.", path.string(), check.error())
+            );
+        }
+        const std::string text = writeJson(json) + "\n";
         return writeFile(path, text).transform_error([&](const std::string& error) {
             return std::format("Cannot save {}: {}.", path.string(), error);
         });

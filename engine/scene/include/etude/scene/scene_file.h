@@ -14,7 +14,8 @@ namespace etude {
     std::expected<World, std::string> loadScene(const std::filesystem::path& path, const ComponentRegistry& registry);
 
     /// @brief Writes the world into the scene file as writeJson formats it, with a line break at the end like any
-    /// text file. Returns why instead if the file cannot be written.
+    /// text file. Returns why instead if the file cannot be written or the scene would not load again, which NaN or
+    /// infinity in a float would cause.
     std::expected<void, std::string> saveScene(
         const std::filesystem::path& path,
         const World& world,
