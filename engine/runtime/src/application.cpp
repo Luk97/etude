@@ -110,7 +110,7 @@ namespace etude {
         return sceneWorld;
     }
 
-    const ComponentRegistry& Application::registry() const {
+    ComponentRegistry& Application::registry() {
         return componentTypes;
     }
 }

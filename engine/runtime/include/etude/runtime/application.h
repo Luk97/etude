@@ -62,8 +62,9 @@ namespace etude {
         /// @brief Returns the entities and components of the running scene, which the loop draws in every frame.
         World& world();
 
-        /// @brief Returns the component types that scenes can hold, starting with those of the engine.
-        const ComponentRegistry& registry() const;
+        /// @brief Returns the component types that scenes can hold. The engine adds its own first, a game adds its
+        /// own in its constructor, before it loads a scene.
+        ComponentRegistry& registry();
 
     private:
         std::string title;
