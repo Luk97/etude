@@ -5,9 +5,9 @@
 
 namespace etude {
 
-    /// @brief Names an entity of a world with 20 bits of index and 12 bits of generation. The index is the place of
-    /// the entity in the storages of its world. When an entity is destroyed, a later entity gets its index with the
-    /// next generation, so handles to the old one no longer count as alive.
+    /// @brief Names an entity of a world with 20 bits of index and 12 bits of generation. The storages of its world
+    /// look the entity up by the index. When an entity is destroyed, a later entity gets its index with the next
+    /// generation, so handles to the old one no longer count as alive.
     enum class Entity : std::uint32_t {
     };
 
