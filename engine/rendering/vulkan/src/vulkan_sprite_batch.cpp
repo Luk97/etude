@@ -4,7 +4,10 @@
 
 namespace etude::vulkan {
 
-    static_assert(sizeof(Sprite) == 2 * sizeof(Vec2) + sizeof(TextureId), "The vertex shader expects no gaps.");
+    static_assert(
+        sizeof(Sprite) == 2 * sizeof(Vec2) + sizeof(float) + sizeof(TextureId),
+        "The vertex shader expects no gaps."
+    );
 
     void uploadSprites(
         VkPhysicalDevice physicalDevice,

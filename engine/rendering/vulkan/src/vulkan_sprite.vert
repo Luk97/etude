@@ -6,6 +6,7 @@
 struct Sprite {
     vec2 position;
     vec2 size;
+    float rotation;
     uint textureIndex;
 };
 
@@ -31,7 +32,12 @@ layout(location = 1) flat out uint textureIndex;
 void main() {
     Sprite sprite = constants.instances.sprites[gl_InstanceIndex];
     vec2 corner = corners[gl_VertexIndex];
-    vec3 clip = constants.viewProjection * vec3(sprite.position + corner * sprite.size, 1.0);
+
+    // Turns the corner around the middle of the sprite like Mat3::rotation, clockwise because y points down.
+    float cosine = cos(sprite.rotation);
+    float sine = sin(sprite.rotation);
+    vec2 offset = mat2(cosine, sine, -sine, cosine) * ((corner - 0.5) * sprite.size);
+    vec3 clip = constants.viewProjection * vec3(sprite.position + 0.5 * sprite.size + offset, 1.0);
     gl_Position = vec4(clip.xy, 0.0, 1.0);
     uv = corner;
     textureIndex = sprite.textureIndex;

@@ -17,7 +17,7 @@ add_executable(etude_tests ${sources})
 target_compile_features(etude_tests PRIVATE cxx_std_23)
 target_link_libraries(etude_tests
     PRIVATE etude::core etude::math etude::json etude::platform etude::assets etude::render2d etude::scene
-            etude::warnings Catch2::Catch2WithMain)
+            etude::runtime etude::warnings Catch2::Catch2WithMain)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
