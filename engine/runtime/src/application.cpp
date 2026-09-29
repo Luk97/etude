@@ -59,7 +59,11 @@ namespace etude {
             onDraw(renderList);
             const std::chrono::nanoseconds gameTime = game.elapsed();
 
-            renderer->render(renderList.camera.viewProjection(window.clientSize()), renderList.sprites);
+            const DrawBatch worldBatch{
+                .viewProjection = renderList.camera.viewProjection(window.clientSize()),
+                .sprites = renderList.sprites,
+            };
+            renderer->render({&worldBatch, 1});
             const FrameTimes times = renderer->frameTimes();
             cpuTime += gameTime + times.cpu;
             gpuTime += times.gpu;

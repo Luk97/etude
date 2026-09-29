@@ -7,11 +7,12 @@ layout(set = 0, binding = 1) uniform texture2D textures[];
 
 layout(location = 0) in vec2 uv;
 layout(location = 1) flat in uint textureIndex;
+layout(location = 2) flat in vec4 color;
 
 layout(location = 0) out vec4 fragmentColor;
 
 void main() {
     // Sprites of one draw use different textures, so neighboring fragments may pick different entries of the table.
     // nonuniformEXT tells the GPU, otherwise it may read the entry of just one of them.
-    fragmentColor = texture(sampler2D(textures[nonuniformEXT(textureIndex)], nearest), uv);
+    fragmentColor = color * texture(sampler2D(textures[nonuniformEXT(textureIndex)], nearest), uv);
 }

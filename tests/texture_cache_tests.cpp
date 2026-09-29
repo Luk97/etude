@@ -13,7 +13,7 @@ namespace {
     // A renderer without a GPU, which only counts the textures that it is given.
     class CountingRenderer : public etude::Renderer {
     public:
-        void render(const etude::Mat3&, std::span<const etude::Sprite>) override {}
+        void render(std::span<const etude::DrawBatch>) override {}
 
         void setClearColor(etude::Color) override {}
 

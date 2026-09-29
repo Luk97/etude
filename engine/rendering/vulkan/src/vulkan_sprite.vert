@@ -2,12 +2,19 @@
 #extension GL_EXT_buffer_reference : require
 #extension GL_EXT_scalar_block_layout : require
 
+struct Rect {
+    vec2 position;
+    vec2 size;
+};
+
 // A sprite as the renderer copies it from the CPU. The scalar layout packs the fields without gaps, just like Sprite.
 struct Sprite {
     vec2 position;
     vec2 size;
     float rotation;
     uint textureIndex;
+    Rect uv;
+    vec4 color;
 };
 
 layout(buffer_reference, scalar) readonly buffer Sprites {
@@ -28,6 +35,12 @@ const vec2 corners[6] = vec2[](
 
 layout(location = 0) out vec2 uv;
 layout(location = 1) flat out uint textureIndex;
+layout(location = 2) flat out vec4 color;
+
+// Colors arrive in sRGB like everywhere in the engine, but the GPU blends in linear light.
+vec3 linearFromSrgb(vec3 srgb) {
+    return mix(srgb / 12.92, pow((srgb + 0.055) / 1.055, vec3(2.4)), greaterThan(srgb, vec3(0.04045)));
+}
 
 void main() {
     Sprite sprite = constants.instances.sprites[gl_InstanceIndex];
@@ -39,6 +52,7 @@ void main() {
     vec2 offset = mat2(cosine, sine, -sine, cosine) * ((corner - 0.5) * sprite.size);
     vec3 clip = constants.viewProjection * vec3(sprite.position + 0.5 * sprite.size + offset, 1.0);
     gl_Position = vec4(clip.xy, 0.0, 1.0);
-    uv = corner;
+    uv = sprite.uv.position + corner * sprite.uv.size;
     textureIndex = sprite.textureIndex;
+    color = vec4(linearFromSrgb(sprite.color.rgb), sprite.color.a);
 }

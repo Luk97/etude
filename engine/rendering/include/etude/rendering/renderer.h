@@ -2,8 +2,7 @@
 
 #include <etude/core/image.h>
 #include <etude/math/color.h>
-#include <etude/math/mat3.h>
-#include <etude/rendering/sprite.h>
+#include <etude/rendering/draw_batch.h>
 #include <etude/rendering/texture_id.h>
 
 #include <chrono>
@@ -28,10 +27,10 @@ namespace etude {
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
 
-        /// @brief Draws the sprites over the clear color into the window. Later sprites cover earlier ones, and the
-        /// matrix maps their world coordinates to clip space. Does nothing while the window has no area, for example
+        /// @brief Draws the batches one after another over the clear color into the window, so later batches cover
+        /// earlier ones like later sprites within a batch. Does nothing while the window has no area, for example
         /// while it is minimized.
-        virtual void render(const Mat3& viewProjection, std::span<const Sprite> sprites) = 0;
+        virtual void render(std::span<const DrawBatch> batches) = 0;
 
         /// @brief Sets the color that fills the window at the start of every frame.
         virtual void setClearColor(Color color) = 0;

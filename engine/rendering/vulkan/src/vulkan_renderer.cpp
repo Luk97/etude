@@ -45,6 +45,13 @@ namespace etude::vulkan {
                 for (Frame& frame : frames) {
                     frame = createFrame(context.device.get(), commandPool.get());
                 }
+
+                // Created first, so that TextureId{} names it and a sprite without a texture shows its plain color.
+                createTexture({
+                    .width = 1,
+                    .height = 1,
+                    .pixels = {{255, 255, 255, 255}},
+                });
             }
 
             /// @brief Waits for the GPU first, because the last frames may still use the objects that are destroyed
@@ -53,8 +60,8 @@ namespace etude::vulkan {
                 vkDeviceWaitIdle(context.device.get());
             }
 
-            /// @brief Draws the sprites into the scene image, then copies it into the window and presents the frame.
-            void render(const Mat3& viewProjection, std::span<const Sprite> sprites) override {
+            /// @brief Draws the batches into the scene image, then copies it into the window and presents the frame.
+            void render(std::span<const DrawBatch> batches) override {
                 times = {};
 
                 // A minimized window has no area, and Vulkan cannot create a swapchain without one.
@@ -85,8 +92,8 @@ namespace etude::vulkan {
                 // Reset only now that the frame is sure to be submitted, otherwise the next wait would block forever.
                 resetFence(context.device.get(), frame.inFlight.get());
 
-                uploadSprites(context.gpu.device, context.device.get(), frame.sprites, sprites);
-                record(frame, *imageIndex, viewProjection);
+                uploadSprites(context.gpu.device, context.device.get(), frame.sprites, batches, targetExtent());
+                record(frame, *imageIndex);
                 submit(frame, *imageIndex);
                 times.cpu = work.elapsed();
 
@@ -96,8 +103,9 @@ namespace etude::vulkan {
                 frameIndex = (frameIndex + 1) % framesInFlight;
             }
 
+            /// @brief Keeps the color in linear light, in which the scene image stores its pixels.
             void setClearColor(Color color) override {
-                clearColor = color;
+                clearColor = toLinear(color);
             }
 
             /// @brief Uploads the image and enters it into the texture table. The upload leaves the queue idle, so no
@@ -142,25 +150,30 @@ namespace etude::vulkan {
                 swapchain.reset();
             }
 
+            /// @brief Returns the size of the swapchain, which the scene image shares.
+            VkExtent2D targetExtent() const {
+                return {
+                    .width = static_cast<std::uint32_t>(swapchain->size.width),
+                    .height = static_cast<std::uint32_t>(swapchain->size.height),
+                };
+            }
+
             /// @brief Records the commands for one frame: draw the sprites into the scene image, then copy it into the
             /// swapchain image and hand that over for presenting. The timer measures only the drawing, because the copy
             /// waits for the display.
-            void record(Frame& frame, std::uint32_t imageIndex, const Mat3& viewProjection) const {
+            void record(Frame& frame, std::uint32_t imageIndex) const {
                 const VkCommandBuffer commands = frame.commands;
                 const VkImage scene = sceneImage->handle.get();
                 const VkImage target = swapchain->images[imageIndex];
                 const VkRect2D area{
-                    .extent = {
-                        .width = static_cast<std::uint32_t>(swapchain->size.width),
-                        .height = static_cast<std::uint32_t>(swapchain->size.height),
-                    },
+                    .extent = targetExtent(),
                 };
 
                 beginCommands(commands);
                 beginTiming(commands, frame.timer);
                 transitionToColorTarget(commands, scene);
                 beginRendering(commands, sceneImage->view.get(), area, clearColor);
-                recordSprites(commands, pipeline, textureTable.set, frame.sprites, viewProjection);
+                recordSprites(commands, pipeline, textureTable.set, frame.sprites);
                 endRendering(commands);
                 endTiming(commands, frame.timer);
 
