@@ -90,7 +90,7 @@ namespace etude {
         using ConstLike = std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>, const T, T>;
 
         /// @brief Numbers the component types in the order in which the program first uses them, so that each type
-        /// finds its storage. The numbers can change between runs, which is why scene files will name the types.
+        /// finds its storage. The numbers can change between runs, which is why scene files name the types instead.
         template <typename Component>
         static std::size_t typeIndex() {
             static const std::size_t index = nextTypeIndex();

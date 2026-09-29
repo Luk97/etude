@@ -19,8 +19,5 @@ namespace etude {
 
     /// @brief Reads a scene as writeScene writes it into a new world, whose entities follow the order of the file.
     /// Returns the first error with its place in the scene instead, such as entities[2].Transform2D.rotation.
-    /// @param json
-    /// @param registry
-    /// @return
     std::expected<World, std::string> readScene(const Json& json, const ComponentRegistry& registry);
 }
