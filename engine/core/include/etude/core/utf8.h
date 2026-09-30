@@ -1,10 +1,11 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 namespace etude {
 
-    /// @brief U+FFFD, which stands for characters that cannot be read or shown.
+    /// @brief U+FFFD, which stands in for characters that cannot be read or shown.
     inline constexpr char32_t replacementCharacter = U'\uFFFD';
 
     /// @brief Appends the character to the text in UTF-8, as one to four bytes.

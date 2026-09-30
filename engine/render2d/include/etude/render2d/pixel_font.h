@@ -12,7 +12,7 @@
 namespace etude {
 
     /// @brief The pixel font built into ETUDE, for printable ASCII, ÄÖÜäöüß and É. Every character takes a cell of the
-    /// same size: its glyph is five pixels wide and stands on the seventh row, descenders reach into the eights, and
+    /// same size: its glyph is five pixels wide and stands on the seventh row, descenders reach into the eighth, and
     /// the sixth column keeps neighboring glyphs apart. Characters without a glyph show as a box.
     class PixelFont {
     public:

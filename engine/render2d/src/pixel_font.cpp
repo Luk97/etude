@@ -34,7 +34,7 @@ namespace etude {
             if (glyph == pixelFontGlyphs.end() || glyph->character != character) {
                 return pixelFontGlyphs.size() - 1;
             }
-            return static_cast<size_t>(glyph - pixelFontGlyphs.begin());
+            return static_cast<std::size_t>(glyph - pixelFontGlyphs.begin());
         }
 
         /// @brief Returns where the cell lies in the atlas, in texture coordinates.

@@ -14,6 +14,9 @@ namespace etude {
             std::size_t length = 0;
         };
 
+        /// @brief Decodes the character at the start of the text. Returns nothing if the bytes are not valid UTF-8:
+        /// a continuation byte without a lead byte, a character cut short, more bytes than the character needs, a
+        /// surrogate or a number beyond U+10FFFF.
         std::optional<Decoded> decode(std::string_view text) {
             const auto byteAt = [text](std::size_t index) { return static_cast<unsigned char>(text[index]); };
             const unsigned char lead = byteAt(0);
@@ -46,7 +49,7 @@ namespace etude {
                 character = (character << 6) | (byteAt(i) & 0x3F);
             }
 
-            // Below the smallest character of each length, the  bytes are overlong.
+            // Below the smallest character of each length, the bytes are overlong.
             constexpr std::array<char32_t, 5> smallest{0, 0, 0x80, 0x800, 0x10000};
             const bool surrogate = character >= 0xD800 && character <= 0xDFFF;
             if (character < smallest[length] || character > 0x10FFFF || surrogate) {
