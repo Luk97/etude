@@ -6,10 +6,14 @@
 #include <etude/ui/context.h>
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <filesystem>
 #include <format>
+#include <optional>
 #include <random>
+#include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -19,8 +23,8 @@ namespace {
     /// @brief Pulls the bunnies down, in pixels per second squared.
     constexpr float gravity = 1800.0f;
 
-    /// @brief How many bunnies join per frame while the left mouse button is held.
-    constexpr int bunniesPerFrame = 250;
+    /// @brief How many bunnies join per frame while the left mouse button is held, until the test panel says otherwise.
+    constexpr int defaultBunniesPerFrame = 250;
 
     /// @brief How many bunnies a click on the button of the test panel adds.
     constexpr int bunniesPerClick = 1000;
@@ -54,6 +58,17 @@ namespace {
         return files;
     }
 
+    /// @brief Reads a whole number that is not negative, or nothing if the text holds anything else.
+    std::optional<int> readCount(std::string_view text) {
+        int count = 0;
+        const char* const end = text.data() + text.size();
+        const auto [stop, error] = std::from_chars(text.data(), end, count);
+        if (error != std::errc{} || stop != end || count < 0) {
+            return std::nullopt;
+        }
+        return count;
+    }
+
     /// @brief The classic benchmark for sprite renderers. While the left mouse button is held, bunnies jump out of the
     /// cursor, fall and bounce off the edges of the window. Releasing the button logs how many there are.
     class Bunnymark : public etude::Application {
@@ -70,9 +85,9 @@ namespace {
 
     protected:
         void onFrame(const etude::Input& input) override {
-            // Test code for etude.ui: a panel with the number of bunnies and two buttons. A press that starts on the
-            // panel belongs to the panel until the button comes up, so it adds no bunnies, even where the mouse moves
-            // meanwhile.
+            // Test code for etude.ui: a panel with the number of bunnies, two buttons, a pause, the tempo and the
+            // number of bunnies per frame. A press that starts on the panel belongs to the panel until the button comes
+            // up, so it adds no bunnies, even where the mouse moves meanwhile.
             ui.beginFrame(input, windowSize(), 2);
             const etude::ui::Signal panel = ui.beginBox({
                 .label = "Panel",
@@ -87,6 +102,13 @@ namespace {
             }
             if (ui.button("Leeren")) {
                 bunnies.clear();
+            }
+            ui.checkbox("Pause", paused);
+            ui.slider("Tempo", tempo, 0.0f, 2.0f);
+            if (ui.textField("Hasen pro Frame", bunniesPerFrameText)) {
+                if (const std::optional<int> count = readCount(bunniesPerFrameText)) {
+                    bunniesPerFrame = *count;
+                }
             }
             ui.endBox();
             ui.endFrame();
@@ -104,10 +126,14 @@ namespace {
             }
         }
 
-        /// @brief Moves every bunny by one step. The side edges reflect it, the top edge stops its rise, and the bottom
-        /// edge throws it back with less speed, sometimes with an extra jump.
+        /// @brief Moves every bunny by one step, stretched by the tempo of the test panel, unless the panel pauses
+        /// them. The side edges reflect a bunny, the top edge stops its rise, and the bottom edge throws it back with
+        /// less speed, sometimes with an extra jump.
         void onStep(etude::FixedTimestep::Duration step) override {
-            const float seconds = std::chrono::duration<float>(step).count();
+            if (paused) {
+                return;
+            }
+            const float seconds = std::chrono::duration<float>(step).count() * tempo;
             const etude::Size bounds = windowSize();
             for (Bunny& bunny : bunnies) {
                 etude::Vec2& position = bunny.sprite.position;
@@ -164,6 +190,10 @@ namespace {
         /// long as the camera stays in the top left corner at zoom 1.
         etude::ui::Context ui{etude::PixelFont{createTexture(etude::PixelFont::makeAtlas())}};
         bool pressOnPanel = false;
+        bool paused = false;
+        float tempo = 1.0f;
+        int bunniesPerFrame = defaultBunniesPerFrame;
+        std::string bunniesPerFrameText = std::to_string(defaultBunniesPerFrame);
 
         // A fixed seed, so that every run moves the bunnies alike.
         std::mt19937 random{42};
