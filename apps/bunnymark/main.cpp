@@ -1,11 +1,14 @@
 #include <etude/assets/qoi.h>
 #include <etude/core/image.h>
 #include <etude/core/log.h>
+#include <etude/render2d/pixel_font.h>
 #include <etude/runtime/application.h>
+#include <etude/ui/context.h>
 
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
+#include <format>
 #include <random>
 #include <system_error>
 #include <utility>
@@ -18,6 +21,18 @@ namespace {
 
     /// @brief How many bunnies join per frame while the left mouse button is held.
     constexpr int bunniesPerFrame = 250;
+
+    /// @brief How many bunnies a click on the button of the test panel adds.
+    constexpr int bunniesPerClick = 1000;
+
+    /// @brief The dark background of the test panel, a little transparent, so that its text stays readable over the
+    /// bunnies.
+    constexpr etude::Color panelColor{
+        .r = 0.05f,
+        .g = 0.05f,
+        .b = 0.08f,
+        .a = 0.8f,
+    };
 
     /// @brief A sprite that moves: gravity pulls it down, and the edges of the window throw it back.
     struct Bunny {
@@ -55,7 +70,31 @@ namespace {
 
     protected:
         void onFrame(const etude::Input& input) override {
-            if (input.held(etude::MouseButton::Left)) {
+            // Test code for etude.ui: a panel with the number of bunnies and two buttons. A press that starts on the
+            // panel belongs to the panel until the button comes up, so it adds no bunnies, even where the mouse moves
+            // meanwhile.
+            ui.beginFrame(input, windowSize(), 2);
+            const etude::ui::Signal panel = ui.beginBox({
+                .label = "Panel",
+                .background = panelColor,
+            });
+            ui.label(std::format("{} Hasen", bunnies.size()));
+            if (ui.button(std::format("+{}", bunniesPerClick))) {
+                const etude::Size size = windowSize();
+                for (int i = 0; i < bunniesPerClick; ++i) {
+                    spawn({static_cast<float>(size.width) / 2.0f, static_cast<float>(size.height) / 2.0f});
+                }
+            }
+            if (ui.button("Leeren")) {
+                bunnies.clear();
+            }
+            ui.endBox();
+            ui.endFrame();
+
+            if (input.pressed(etude::MouseButton::Left)) {
+                pressOnPanel = panel.rect.contains(input.mousePosition());
+            }
+            if (input.held(etude::MouseButton::Left) && !pressOnPanel) {
                 for (int i = 0; i < bunniesPerFrame; ++i) {
                     spawn(input.mousePosition());
                 }
@@ -102,6 +141,7 @@ namespace {
             for (const Bunny& bunny : bunnies) {
                 list.sprites.push_back(bunny.sprite);
             }
+            list.sprites.append_range(ui.sprites());
         }
 
     private:
@@ -119,6 +159,11 @@ namespace {
         /// @brief One sprite per texture with the size of its image. New bunnies are copies of these.
         std::vector<etude::Sprite> kinds;
         std::vector<Bunny> bunnies;
+
+        /// @brief Test code for etude.ui. Draws in the coordinates of the world, which match those of the window as
+        /// long as the camera stays in the top left corner at zoom 1.
+        etude::ui::Context ui{etude::PixelFont{createTexture(etude::PixelFont::makeAtlas())}};
+        bool pressOnPanel = false;
 
         // A fixed seed, so that every run moves the bunnies alike.
         std::mt19937 random{42};
