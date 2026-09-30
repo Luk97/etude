@@ -50,6 +50,11 @@ namespace etude::ui {
             hot = Id{};
         }
 
+        // A press anywhere but on the field with the focus ends the typing into it.
+        if (input.pressed(MouseButton::Left) && hot != focus) {
+            focus = Id{};
+        }
+
         // The root keeps the size of the screen. Its rules only say that it does not fit its children.
         nodes.clear();
         nodes.push_back({
@@ -119,12 +124,12 @@ namespace etude::ui {
             .id = id,
             .keyed = keyed,
             .parent = parent,
-            .text = std::string(visibleText(spec.label)),
+            .text = std::string(spec.text.value_or(visibleText(spec.label))),
             .rules = {spec.width, spec.height},
             .childAxis = spec.childAxis,
             .clickable = spec.clickable,
             .background = spec.background,
-            .textColor = spec.text,
+            .textColor = spec.textColor,
         });
         openNodes.push_back(nodes.size() - 1);
         return signal;
@@ -186,16 +191,12 @@ namespace etude::ui {
         for (const Node& node : nodes) {
             const Rect rect = node.rect();
             if (node.background) {
-                Color color = *node.background;
-                if (node.clickable && node.id == active) {
-                    color = mix(color, black, 0.25f);
-                } else if (node.clickable && node.id == hot) {
-                    color = mix(color, white, 0.15f);
-                }
+                const bool hovered = node.clickable && node.id == hot;
+                const bool held = node.clickable && node.id == active;
                 drawList.push_back({
                     .position = rect.position,
                     .size = rect.size,
-                    .color = color,
+                    .color = highlight(*node.background, hovered, held),
                 });
             }
             if (node.textColor) {
@@ -204,5 +205,15 @@ namespace etude::ui {
                 font.appendText(drawList, node.text, textPosition, frameScale, *node.textColor);
             }
         }
+    }
+
+    Color Context::highlight(Color color, bool hovered, bool held) {
+        if (held) {
+            return mix(color, black, 0.25f);
+        }
+        if (hovered) {
+            return mix(color, white, 0.15f);
+        }
+        return color;
     }
 }

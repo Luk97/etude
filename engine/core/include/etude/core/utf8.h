@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 
@@ -14,4 +15,12 @@ namespace etude {
     /// @brief Removes the first character from the UTF-8 text and returns it. A byte that does not start a valid
     /// character comes out as the replacement character, and only that byte is removed. The text must not be empty.
     char32_t takeUtf8(std::string_view& text);
+
+    /// @brief Returns where the character after the one at the offset starts, or the size of the text if that one is
+    /// the last. The offset has to lie before the end of valid UTF-8 text.
+    std::size_t nextCharacter(std::string_view text, std::size_t offset);
+
+    /// @brief Returns where the character before the offset starts. The offset has to lie after the start of valid
+    /// UTF-8 text.
+    std::size_t previousCharacter(std::string_view text, std::size_t offset);
 }

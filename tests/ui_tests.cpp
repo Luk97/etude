@@ -2,9 +2,12 @@
 
 #include <etude/ui/context.h>
 
+#include <algorithm>
+#include <string>
 #include <utility>
 
 using etude::Input;
+using etude::Key;
 using etude::MouseButton;
 using etude::PixelFont;
 using etude::Vec2;
@@ -20,6 +23,41 @@ namespace {
 
     constexpr auto fontTexture = static_cast<etude::TextureId>(7);
     constexpr etude::Size screen{640, 360};
+
+    // Runs frames of a UI with one text field, like the game loop does. Its label Name takes 30 pixels, so the field
+    // starts at x 30.
+    struct TextFieldFrames {
+        Input input;
+        Context ui{PixelFont{fontTexture}};
+        std::string text;
+
+        bool frame() {
+            ui.beginFrame(input, screen, 1);
+            const bool changed = ui.textField("Name", text);
+            ui.endFrame();
+            input.beginFrame();
+            return changed;
+        }
+
+        void clickAt(Vec2 position) {
+            input.onMouseMove(position);
+            input.onMouseButtonDown(MouseButton::Left);
+            frame();
+            input.onMouseButtonUp(MouseButton::Left);
+            frame();
+        }
+
+        void tap(Key key) {
+            input.onKeyDown(key);
+            frame();
+            input.onKeyUp(key);
+        }
+
+        bool type(char16_t character) {
+            input.onCharacter(character);
+            return frame();
+        }
+    };
 }
 
 TEST_CASE("ui::makeId hashes the label with FNV-1a, starting from the parent") {
@@ -301,4 +339,154 @@ TEST_CASE("A button turns lighter under the mouse and darker while it is held") 
     const float held = background();
     CHECK(hovered > normal);
     CHECK(held < normal);
+}
+
+TEST_CASE("Labels and text fields show ## in their text as it is") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    std::string text = "x##y";
+    ui.beginFrame(input, screen, 1);
+    ui.label("a##b");
+    ui.textField("Name", text);
+    ui.endFrame();
+    const auto glyphs =
+        std::ranges::count_if(ui.sprites(), [](const etude::Sprite& sprite) { return sprite.texture == fontTexture; });
+    CHECK(glyphs == 12);
+}
+
+TEST_CASE("A checkbox flips its value when a click on the square or on its text ends") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    bool value = false;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        const bool changed = ui.checkbox("Pause", value);
+        ui.endFrame();
+        input.beginFrame();
+        return changed;
+    };
+    const auto clickAt = [&](Vec2 position) {
+        input.onMouseMove(position);
+        input.onMouseButtonDown(MouseButton::Left);
+        frame();
+        input.onMouseButtonUp(MouseButton::Left);
+        return frame();
+    };
+    frame();
+
+    input.onMouseMove({5.0f, 5.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    CHECK_FALSE(frame());
+    CHECK_FALSE(value);
+    input.onMouseButtonUp(MouseButton::Left);
+    CHECK(frame());
+    CHECK(value);
+
+    CHECK(clickAt({30.0f, 5.0f}));
+    CHECK_FALSE(value);
+}
+
+TEST_CASE("A slider takes the value where the mouse presses or drags it, within its range") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    float value = 0.0f;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        const bool changed = ui.slider("Tempo", value, 0.0f, 2.0f);
+        ui.endFrame();
+        input.beginFrame();
+        return changed;
+    };
+    frame();
+
+    // The text Tempo takes 36 pixels, so the bar runs from x 36 to 136.
+    input.onMouseMove({86.0f, 5.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    CHECK(frame());
+    CHECK(value == 1.0f);
+    input.onMouseMove({500.0f, 5.0f});
+    frame();
+    CHECK(value == 2.0f);
+    input.onMouseButtonUp(MouseButton::Left);
+    CHECK_FALSE(frame());
+    CHECK(value == 2.0f);
+}
+
+TEST_CASE("A text field takes typed text from a click on it until Enter, Escape or a click elsewhere") {
+    TextFieldFrames field{
+        .text = "Hase",
+    };
+    field.frame();
+    CHECK_FALSE(field.type(u'x'));
+
+    field.clickAt({60.0f, 5.0f});
+    CHECK(field.type(u'n'));
+    field.tap(Key::Enter);
+    field.type(u'x');
+    CHECK(field.text == "Hasen");
+
+    field.clickAt({60.0f, 5.0f});
+    field.tap(Key::Escape);
+    field.type(u'x');
+    CHECK(field.text == "Hasen");
+
+    field.clickAt({60.0f, 5.0f});
+    field.clickAt({400.0f, 300.0f});
+    field.type(u'x');
+    CHECK(field.text == "Hasen");
+}
+
+TEST_CASE("Backspace, Delete, the arrow keys, Home and End edit the text character by character") {
+    TextFieldFrames field{
+        .text = "aä€",
+    };
+    field.frame();
+    field.clickAt({60.0f, 5.0f});
+    field.tap(Key::Backspace);
+    CHECK(field.text == "aä");
+    field.tap(Key::Left);
+    field.tap(Key::Delete);
+    CHECK(field.text == "a");
+    field.tap(Key::Home);
+    field.type(u'b');
+    field.tap(Key::Right);
+    field.type(u'c');
+    CHECK(field.text == "bac");
+    field.tap(Key::Home);
+    field.tap(Key::End);
+    field.type(u'ü');
+    CHECK(field.text == "bacü");
+}
+
+TEST_CASE("A held Backspace removes one more character whenever the keyboard repeats it") {
+    TextFieldFrames field{
+        .text = "Hasen",
+    };
+    field.frame();
+    field.clickAt({60.0f, 5.0f});
+    field.input.onKeyDown(Key::Backspace);
+    field.frame();
+    CHECK(field.text == "Hase");
+    field.frame();
+    CHECK(field.text == "Hase");
+    field.input.onKeyDown(Key::Backspace);
+    field.frame();
+    CHECK(field.text == "Has");
+}
+
+TEST_CASE("A click into the field with the focus keeps the cursor, which stays inside text that the game shortens") {
+    TextFieldFrames field{
+        .text = "Hasen",
+    };
+    field.frame();
+    field.clickAt({60.0f, 5.0f});
+    field.tap(Key::Home);
+    field.clickAt({60.0f, 5.0f});
+    field.type(u'x');
+    CHECK(field.text == "xHasen");
+
+    field.tap(Key::End);
+    field.text = "Ha";
+    field.type(u'!');
+    CHECK(field.text == "Ha!");
 }

@@ -49,11 +49,26 @@ namespace etude::ui {
         /// @brief Closes the box that beginBox opened last.
         void endBox();
 
-        /// @brief Shows a line of text.
+        /// @brief Shows a line of text as it is.
         void label(std::string_view text);
 
         /// @brief Shows a button with the visible text of the label and returns whether it was clicked in this frame.
         bool button(std::string_view label);
+
+        /// @brief Shows a square that a click turns on and off, with the visible text of the label beside it, which
+        /// takes clicks as well. Returns whether the value changed in this frame.
+        bool checkbox(std::string_view label, bool& value);
+
+        /// @brief Shows a bar that sets the value between min and max to where the mouse presses or drags it, with the
+        /// visible text of the label before it and the value after it. Returns whether the value changed in this frame.
+        /// Min has to be smaller than max.
+        bool slider(std::string_view label, float& value, float min, float max);
+
+        /// @brief Shows a field that takes typed text from a click on it until Enter, Escape or a click elsewhere.
+        /// Backspace and Delete remove characters, the arrow keys, Home and End move the cursor, and held keys repeat.
+        /// Returns whether the text changed in this frame. The text has to be valid UTF-8, and text longer than the
+        /// field runs past its end.
+        bool textField(std::string_view label, std::string& text);
 
     private:
         /// @brief A box of the current frame and its layout, with one entry per axis in the arrays.
@@ -87,6 +102,13 @@ namespace etude::ui {
         /// @brief Turns the nodes into sprites, parents before their children.
         void draw();
 
+        /// @brief Applies the typed text and the editing keys of the frame to the text of the field with the focus,
+        /// and returns whether the text changed.
+        bool edit(std::string& text);
+
+        /// @brief Returns the color of a clickable box: lighter while the mouse is over it, darker while it is held.
+        static Color highlight(Color color, bool hovered, bool held);
+
         PixelFont font;
         const Input* frameInput = nullptr;
         int frameScale = 1;
@@ -97,6 +119,12 @@ namespace etude::ui {
         /// @brief The box on which the left button went down and that keeps the mouse until the button comes up,
         /// which its signal calls held.
         Id active{};
+
+        /// @brief The text field that takes the typed text.
+        Id focus{};
+
+        /// @brief Where the next typed character goes in the text of the field with the focus, in bytes.
+        std::size_t cursor = 0;
 
         /// @brief The boxes of the frame in the order of building, so every parent comes before its children.
         std::vector<Node> nodes;

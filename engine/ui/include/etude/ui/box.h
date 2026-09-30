@@ -70,6 +70,10 @@ namespace etude::ui {
         /// be clickable.
         std::string_view label;
 
+        /// @brief The text of the box as it is, instead of the visible part of the label, for text that may contain
+        /// ## such as typed text.
+        std::optional<std::string_view> text;
+
         SizeRule width;
         SizeRule height;
 
@@ -83,8 +87,8 @@ namespace etude::ui {
         /// it is held.
         std::optional<Color> background;
 
-        /// @brief Writes the visible text of the label in this color, if set, centered in the box.
-        std::optional<Color> text;
+        /// @brief Writes the text of the box in this color, if set, centered in the box.
+        std::optional<Color> textColor;
     };
 
     /// @brief What the mouse does with a box in this frame. The mouse is tested against the rectangle of the last

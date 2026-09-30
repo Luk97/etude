@@ -8,6 +8,11 @@ namespace etude {
 
     namespace {
 
+        /// @brief Returns whether the byte continues a character, as the second to fourth byte of it.
+        bool isContinuation(char byte) {
+            return (static_cast<unsigned char>(byte) & 0xC0) == 0x80;
+        }
+
         /// @brief A character and the number of bytes that it takes in UTF-8.
         struct Decoded {
             char32_t character = 0;
@@ -43,7 +48,7 @@ namespace etude {
                 return std::nullopt;
             }
             for (std::size_t i = 1; i < length; ++i) {
-                if ((byteAt(i) & 0xC0) != 0x80) {
+                if (!isContinuation(text[i])) {
                     return std::nullopt;
                 }
                 character = (character << 6) | (byteAt(i) & 0x3F);
@@ -85,5 +90,19 @@ namespace etude {
         }
         text.remove_prefix(decoded->length);
         return decoded->character;
+    }
+
+    std::size_t nextCharacter(std::string_view text, std::size_t offset) {
+        do {
+            ++offset;
+        } while (offset < text.size() && isContinuation(text[offset]));
+        return offset;
+    }
+
+    std::size_t previousCharacter(std::string_view text, std::size_t offset) {
+        do {
+            --offset;
+        } while (offset > 0 && isContinuation(text[offset]));
+        return offset;
     }
 }

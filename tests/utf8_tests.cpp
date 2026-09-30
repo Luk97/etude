@@ -49,3 +49,15 @@ TEST_CASE("takeUtf8 replaces every byte that does not start a valid character") 
     CHECK(takeAll("\xED\xA0\x80") == U"\uFFFD\uFFFD\uFFFD");
     CHECK(takeAll("\xF4\x90\x80\x80") == U"\uFFFD\uFFFD\uFFFD\uFFFD");
 }
+
+TEST_CASE("nextCharacter and previousCharacter step over whole characters") {
+    const std::string_view text = "aä€😀";
+    CHECK(etude::nextCharacter(text, 0) == 1);
+    CHECK(etude::nextCharacter(text, 1) == 3);
+    CHECK(etude::nextCharacter(text, 3) == 6);
+    CHECK(etude::nextCharacter(text, 6) == 10);
+    CHECK(etude::previousCharacter(text, 10) == 6);
+    CHECK(etude::previousCharacter(text, 6) == 3);
+    CHECK(etude::previousCharacter(text, 3) == 1);
+    CHECK(etude::previousCharacter(text, 1) == 0);
+}
