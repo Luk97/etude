@@ -1,5 +1,6 @@
 #include <etude/ui/context.h>
 
+#include <etude/core/assert.h>
 #include <etude/core/utf8.h>
 
 #include <algorithm>
@@ -33,14 +34,108 @@ namespace etude::ui {
             .b = 0.16f,
         };
 
+        constexpr Color panelColor{
+            .r = 0.08f,
+            .g = 0.08f,
+            .b = 0.11f,
+        };
+
+        constexpr Color titleColor{
+            .r = 0.2f,
+            .g = 0.3f,
+            .b = 0.5f,
+        };
+
         /// @brief The padding above and below the text of every widget, so that all widgets are equally high.
         constexpr float linePadding = 3.0f;
 
         /// @brief The height of a widget, the text with its padding, in pixels at scale 1.
         constexpr float lineHeight = PixelFont::cellHeight + 2.0f * linePadding;
 
+        /// @brief The space between the widgets of a panel, a row or a column, and around the content of a panel.
+        constexpr float widgetGap = 3.0f;
+        constexpr float panelPadding = 4.0f;
+
+        /// @brief How far one notch of the wheel scrolls, in pixels at scale 1.
+        constexpr float scrollStep = 24.0f;
+
         constexpr float trackWidth = 100.0f;
         constexpr float fieldWidth = 120.0f;
+    }
+
+    Scope Context::panel(const PanelSpec& spec) {
+        ETUDE_ASSERT(openNodes.size() == 1);
+        const Id id = makeId(spec.title, rootId);
+        const auto [entry, created] = panels.try_emplace(id);
+        PanelState& state = entry->second;
+        if (created) {
+            state.position = spec.position * static_cast<float>(frameScale);
+            panelOrder.push_back(id);
+        }
+        if (topPanel == id) {
+            const float scrolled = state.scroll - frameInput->wheel() * scrollStep * static_cast<float>(frameScale);
+            state.scroll = std::clamp(scrolled, 0.0f, state.maxScroll);
+        }
+
+        beginBox({
+            .label = spec.title,
+            .width = SizeRule::pixels(spec.size.x),
+            .height = SizeRule::pixels(spec.size.y),
+            .background = panelColor,
+        });
+        const std::size_t node = nodes.size() - 1;
+        nodes[node].floating = true;
+        nodes[node].panel = id;
+
+        // Dragging the title moves the panel in the same frame, since the layout places it only at the end.
+        const Signal title = box({
+            .label = "##title",
+            .text = visibleText(spec.title),
+            .width = SizeRule::parentShare(1.0f),
+            .height = SizeRule::fitText(linePadding),
+            .clickable = true,
+            .background = titleColor,
+            .textColor = textColor,
+        });
+        const Vec2 mouse = frameInput->mousePosition();
+        if (title.pressed) {
+            state.grab = mouse - state.position;
+        }
+        if (title.held) {
+            state.position = mouse - state.grab;
+        }
+        nodes[node].offset = state.position;
+
+        beginBox({
+            .label = "##content",
+            .width = SizeRule::parentShare(1.0f),
+            .height = SizeRule::pixels(spec.size.y - lineHeight),
+            .padding = panelPadding,
+            .gap = widgetGap,
+            .clip = true,
+        });
+        nodes.back().scroll = state.scroll;
+        framePanels.push_back({
+            .id = id,
+            .node = node,
+            .content = nodes.size() - 1,
+        });
+        return Scope(*this, 2);
+    }
+
+    Scope Context::row() {
+        beginBox({
+            .childAxis = Axis::X,
+            .gap = widgetGap,
+        });
+        return Scope(*this, 1);
+    }
+
+    Scope Context::column() {
+        beginBox({
+            .gap = widgetGap,
+        });
+        return Scope(*this, 1);
     }
 
     void Context::label(std::string_view text) {
@@ -143,6 +238,9 @@ namespace etude::ui {
             .label = "##field",
             .width = SizeRule::pixels(fieldWidth),
             .height = SizeRule::fitText(linePadding),
+            .childAxis = Axis::X,
+            .padding = linePadding,
+            .clip = true,
             .clickable = true,
             .background = fieldColor,
         });
@@ -153,16 +251,7 @@ namespace etude::ui {
         }
         const bool changed = focus == id && edit(text);
 
-        // The line of text sits inside the padding, split at the cursor while the field has the focus.
-        box({
-            .height = SizeRule::pixels(linePadding),
-        });
-        beginBox({
-            .childAxis = Axis::X,
-        });
-        box({
-            .width = SizeRule::pixels(linePadding),
-        });
+        // While the field has the focus, the cursor splits the text in two.
         const std::string_view shown = text;
         const std::size_t split = focus == id ? cursor : shown.size();
         box({
@@ -184,7 +273,6 @@ namespace etude::ui {
             .height = SizeRule::fitText(0.0f),
             .textColor = textColor,
         });
-        endBox();
         endBox();
         endBox();
         return changed;

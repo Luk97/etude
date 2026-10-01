@@ -3,6 +3,9 @@
 #include <etude/ui/context.h>
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
+#include <format>
 #include <string>
 #include <utility>
 
@@ -489,4 +492,237 @@ TEST_CASE("A click into the field with the focus keeps the cursor, which stays i
     field.text = "Ha";
     field.type(u'!');
     CHECK(field.text == "Ha!");
+}
+
+TEST_CASE("Padding keeps the children away from the edge of their box, and a gap keeps them apart") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Signal column;
+    Signal second;
+    Signal share;
+    for (int frame = 0; frame < 2; ++frame) {
+        ui.beginFrame(input, screen, 1);
+        column = ui.beginBox({
+            .label = "Column",
+            .padding = 4.0f,
+            .gap = 2.0f,
+        });
+        ui.box({
+            .label = "First",
+            .width = SizeRule::pixels(10.0f),
+            .height = SizeRule::pixels(10.0f),
+        });
+        second = ui.box({
+            .label = "Second",
+            .width = SizeRule::pixels(10.0f),
+            .height = SizeRule::pixels(10.0f),
+        });
+        ui.endBox();
+        ui.beginBox({
+            .label = "Fixed",
+            .width = SizeRule::pixels(40.0f),
+            .height = SizeRule::pixels(20.0f),
+            .padding = 5.0f,
+        });
+        share = ui.box({
+            .label = "Share",
+            .width = SizeRule::parentShare(1.0f),
+            .height = SizeRule::parentShare(1.0f),
+        });
+        ui.endBox();
+        ui.endFrame();
+    }
+    CHECK(column.rect.size == Vec2{18.0f, 30.0f});
+    CHECK(second.rect.position == Vec2{4.0f, 16.0f});
+    CHECK(share.rect.size == Vec2{30.0f, 10.0f});
+}
+
+TEST_CASE("A row puts its widgets side by side, with a gap between them") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Signal right;
+    for (int frame = 0; frame < 2; ++frame) {
+        ui.beginFrame(input, screen, 1);
+        {
+            const auto row = ui.row();
+            ui.box({
+                .label = "Left",
+                .width = SizeRule::pixels(10.0f),
+                .height = SizeRule::pixels(10.0f),
+            });
+            right = ui.box({
+                .label = "Right",
+                .width = SizeRule::pixels(10.0f),
+                .height = SizeRule::pixels(10.0f),
+            });
+        }
+        ui.endFrame();
+    }
+    CHECK(right.rect.position == Vec2{13.0f, 0.0f});
+}
+
+TEST_CASE("A panel floats at its position with its content below the title, and dragging the title moves it") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Signal inside;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        {
+            const auto panel = ui.panel({
+                .title = "Hasen",
+                .position = {100.0f, 50.0f},
+                .size = {200.0f, 100.0f},
+            });
+            inside = ui.box({
+                .label = "Inside",
+                .width = SizeRule::pixels(20.0f),
+                .height = SizeRule::pixels(10.0f),
+            });
+        }
+        ui.endFrame();
+        input.beginFrame();
+    };
+    frame();
+    frame();
+
+    // The title takes 14 pixels, and the content keeps a padding of 4.
+    CHECK(inside.rect.position == Vec2{104.0f, 68.0f});
+
+    input.onMouseMove({150.0f, 55.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    frame();
+    input.onMouseMove({180.0f, 75.0f});
+    frame();
+    input.onMouseButtonUp(MouseButton::Left);
+    frame();
+    CHECK(inside.rect.position == Vec2{134.0f, 88.0f});
+}
+
+TEST_CASE("The panel in front covers the panels behind it, and a click on a panel brings it to the front") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    const auto area = [&] {
+        const Signal signal = ui.box({
+            .label = "Area",
+            .width = SizeRule::parentShare(1.0f),
+            .height = SizeRule::parentShare(1.0f),
+            .clickable = true,
+        });
+        return signal.clicked;
+    };
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        bool back = false;
+        bool front = false;
+        {
+            const auto panel = ui.panel({
+                .title = "Back",
+                .position = {0.0f, 0.0f},
+                .size = {100.0f, 100.0f},
+            });
+            back = area();
+        }
+        {
+            const auto panel = ui.panel({
+                .title = "Front",
+                .position = {50.0f, 50.0f},
+                .size = {100.0f, 100.0f},
+            });
+            front = area();
+        }
+        ui.endFrame();
+        input.beginFrame();
+        return std::pair{back, front};
+    };
+    const auto clickAt = [&](Vec2 position) {
+        input.onMouseMove(position);
+        input.onMouseButtonDown(MouseButton::Left);
+        frame();
+        input.onMouseButtonUp(MouseButton::Left);
+        return frame();
+    };
+    frame();
+    CHECK(clickAt({75.0f, 75.0f}) == std::pair{false, true});
+
+    // The padding of the front panel lies over the area of the back panel and covers it.
+    CHECK(clickAt({52.0f, 80.0f}) == std::pair{false, false});
+
+    CHECK(clickAt({25.0f, 25.0f}) == std::pair{true, false});
+    CHECK(clickAt({75.0f, 75.0f}) == std::pair{true, false});
+}
+
+TEST_CASE("A panel cuts off what does not fit, the wheel scrolls it into view, and clicks miss what is cut off") {
+    constexpr etude::Color gray{
+        .r = 0.5f,
+        .g = 0.5f,
+        .b = 0.5f,
+    };
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    std::array<Signal, 5> rows;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        {
+            const auto panel = ui.panel({
+                .title = "List",
+                .position = {0.0f, 0.0f},
+                .size = {100.0f, 60.0f},
+            });
+            for (std::size_t i = 0; i < rows.size(); ++i) {
+                rows[i] = ui.box({
+                    .label = std::format("Row {}", i),
+                    .width = SizeRule::pixels(50.0f),
+                    .height = SizeRule::pixels(20.0f),
+                    .clickable = true,
+                    .background = gray,
+                });
+            }
+        }
+        ui.endFrame();
+        input.beginFrame();
+    };
+    const auto clickAt = [&](Vec2 position) {
+        input.onMouseMove(position);
+        input.onMouseButtonDown(MouseButton::Left);
+        frame();
+        input.onMouseButtonUp(MouseButton::Left);
+        frame();
+    };
+    frame();
+    frame();
+
+    // Below the title, the content has 46 pixels for rows of 20 with gaps of 3, which start after a padding of 4.
+    const etude::Rect content{
+        .position = {0.0f, 14.0f},
+        .size = {100.0f, 46.0f},
+    };
+    CHECK(std::ranges::any_of(ui.batches(), [&](const etude::DrawBatch& batch) { return batch.clip == content; }));
+    clickAt({10.0f, 45.0f});
+    CHECK(rows[1].clicked);
+
+    input.onWheel(-1.0f);
+    frame();
+    clickAt({10.0f, 45.0f});
+    CHECK(rows[2].clicked);
+    clickAt({10.0f, 10.0f});
+    CHECK_FALSE(rows[0].clicked);
+
+    input.onWheel(-10.0f);
+    frame();
+    frame();
+    CHECK(rows[4].rect.position.y == 36.0f);
+}
+
+TEST_CASE("A text field cuts off text that does not fit") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    std::string text(40, 'x');
+    ui.beginFrame(input, screen, 1);
+    ui.textField("Name", text);
+    ui.endFrame();
+    const etude::Rect field{
+        .position = {30.0f, 0.0f},
+        .size = {120.0f, 14.0f},
+    };
+    CHECK(std::ranges::any_of(ui.batches(), [&](const etude::DrawBatch& batch) { return batch.clip == field; }));
 }

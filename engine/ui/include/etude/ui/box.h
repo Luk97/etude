@@ -44,8 +44,8 @@ namespace etude::ui {
             };
         }
 
-        /// @brief A share of the size of the parent, from 0 to 1. A parent that fits its children does not know its
-        /// size yet when its children ask, so there the share comes out as 0.
+        /// @brief A share of the space inside the padding of the parent, from 0 to 1. A parent that fits its children
+        /// does not know its size yet when its children ask, so there the share comes out as 0.
         static constexpr SizeRule parentShare(float share) {
             return {
                 .kind = Kind::ParentShare,
@@ -79,6 +79,16 @@ namespace etude::ui {
 
         /// @brief The axis along which the children of the box follow each other.
         Axis childAxis = Axis::Y;
+
+        /// @brief The space between the edge of the box and its children on all four sides, in pixels at scale 1.
+        float padding = 0.0f;
+
+        /// @brief The space between two children that follow each other, in pixels at scale 1.
+        float gap = 0.0f;
+
+        /// @brief Whether the box cuts off what its children draw beyond its edge. What it cuts off does not react to
+        /// the mouse either.
+        bool clip = false;
 
         /// @brief Whether the box reacts to the mouse. Only the topmost clickable box under the mouse does.
         bool clickable = false;
