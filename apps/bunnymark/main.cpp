@@ -29,15 +29,6 @@ namespace {
     /// @brief How many bunnies a click on the button of the test panel adds.
     constexpr int bunniesPerClick = 1000;
 
-    /// @brief The dark background of the test panel, a little transparent, so that its text stays readable over the
-    /// bunnies.
-    constexpr etude::Color panelColor{
-        .r = 0.05f,
-        .g = 0.05f,
-        .b = 0.08f,
-        .a = 0.8f,
-    };
-
     /// @brief A sprite that moves: gravity pulls it down, and the edges of the window throw it back.
     struct Bunny {
         etude::Sprite sprite;
@@ -85,44 +76,63 @@ namespace {
 
     protected:
         void onFrame(const etude::Input& input) override {
-            // Test code for etude.ui: a panel with the number of bunnies, two buttons, a pause, the tempo and the
-            // number of bunnies per frame. A press that starts on the panel belongs to the panel until the button comes
-            // up, so it adds no bunnies, even where the mouse moves meanwhile.
+            // Test code for etude.ui: two panels, which move by their title and come to the front with a click. One
+            // holds the number of bunnies, two buttons, a pause, the tempo and the number of bunnies per frame, the
+            // other lists what happened and scrolls with the wheel. A press that starts on the UI belongs to it until
+            // the button comes up, so it adds no bunnies, even where the mouse moves meanwhile.
             ui.beginFrame(input, windowSize(), 2);
-            const etude::ui::Signal panel = ui.beginBox({
-                .label = "Panel",
-                .background = panelColor,
-            });
-            ui.label(std::format("{} Hasen", bunnies.size()));
-            if (ui.button(std::format("+{}", bunniesPerClick))) {
-                const etude::Size size = windowSize();
-                for (int i = 0; i < bunniesPerClick; ++i) {
-                    spawn({static_cast<float>(size.width) / 2.0f, static_cast<float>(size.height) / 2.0f});
+            {
+                const auto panel = ui.panel({
+                    .title = "Hasen",
+                    .position = {8.0f, 8.0f},
+                    .size = {232.0f, 112.0f},
+                });
+                ui.label(std::format("{} Hasen", bunnies.size()));
+                {
+                    const auto row = ui.row();
+                    if (ui.button(std::format("+{}", bunniesPerClick))) {
+                        const etude::Size size = windowSize();
+                        for (int i = 0; i < bunniesPerClick; ++i) {
+                            spawn({static_cast<float>(size.width) / 2.0f, static_cast<float>(size.height) / 2.0f});
+                        }
+                        events.push_back(std::format("+{} Hasen", bunniesPerClick));
+                    }
+                    if (ui.button("Leeren")) {
+                        bunnies.clear();
+                        events.emplace_back("Geleert");
+                    }
+                }
+                if (ui.checkbox("Pause", paused)) {
+                    events.emplace_back(paused ? "Pause" : "Weiter");
+                }
+                ui.slider("Tempo", tempo, 0.0f, 2.0f);
+                if (ui.textField("Hasen pro Frame", bunniesPerFrameText)) {
+                    if (const std::optional<int> count = readCount(bunniesPerFrameText)) {
+                        bunniesPerFrame = *count;
+                        events.push_back(std::format("{} Hasen pro Frame", bunniesPerFrame));
+                    }
                 }
             }
-            if (ui.button("Leeren")) {
-                bunnies.clear();
-            }
-            ui.checkbox("Pause", paused);
-            ui.slider("Tempo", tempo, 0.0f, 2.0f);
-            if (ui.textField("Hasen pro Frame", bunniesPerFrameText)) {
-                if (const std::optional<int> count = readCount(bunniesPerFrameText)) {
-                    bunniesPerFrame = *count;
+            {
+                const auto panel = ui.panel({
+                    .title = "Protokoll",
+                    .position = {248.0f, 8.0f},
+                    .size = {140.0f, 112.0f},
+                });
+                for (const std::string& event : events) {
+                    ui.label(event);
                 }
             }
-            ui.endBox();
             ui.endFrame();
 
-            if (input.pressed(etude::MouseButton::Left)) {
-                pressOnPanel = panel.rect.contains(input.mousePosition());
-            }
-            if (input.held(etude::MouseButton::Left) && !pressOnPanel) {
+            if (input.held(etude::MouseButton::Left) && !ui.wantsMouse()) {
                 for (int i = 0; i < bunniesPerFrame; ++i) {
                     spawn(input.mousePosition());
                 }
             }
-            if (input.released(etude::MouseButton::Left)) {
+            if (input.released(etude::MouseButton::Left) && !ui.wantsMouse()) {
                 etude::logInfo("{} bunnies", bunnies.size());
+                events.push_back(std::format("{} Hasen", bunnies.size()));
             }
         }
 
@@ -167,7 +177,7 @@ namespace {
             for (const Bunny& bunny : bunnies) {
                 list.sprites.push_back(bunny.sprite);
             }
-            list.sprites.append_range(ui.sprites());
+            list.batches.append_range(ui.batches());
         }
 
     private:
@@ -186,14 +196,15 @@ namespace {
         std::vector<etude::Sprite> kinds;
         std::vector<Bunny> bunnies;
 
-        /// @brief Test code for etude.ui. Draws in the coordinates of the world, which match those of the window as
-        /// long as the camera stays in the top left corner at zoom 1.
+        /// @brief Test code for etude.ui, whose batches cover the bunnies in the pixels of the window.
         etude::ui::Context ui{etude::PixelFont{createTexture(etude::PixelFont::makeAtlas())}};
-        bool pressOnPanel = false;
         bool paused = false;
         float tempo = 1.0f;
         int bunniesPerFrame = defaultBunniesPerFrame;
         std::string bunniesPerFrameText = std::to_string(defaultBunniesPerFrame);
+
+        /// @brief What happened, oldest first, for the second panel.
+        std::vector<std::string> events;
 
         // A fixed seed, so that every run moves the bunnies alike.
         std::mt19937 random{42};

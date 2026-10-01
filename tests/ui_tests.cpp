@@ -726,3 +726,103 @@ TEST_CASE("A text field cuts off text that does not fit") {
     };
     CHECK(std::ranges::any_of(ui.batches(), [&](const etude::DrawBatch& batch) { return batch.clip == field; }));
 }
+
+TEST_CASE("The UI wants the mouse over what it drew, and a press belongs to where it began until it ends") {
+    constexpr etude::Color gray{
+        .r = 0.5f,
+        .g = 0.5f,
+        .b = 0.5f,
+    };
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    bool drawn = true;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        if (drawn) {
+            ui.box({
+                .width = SizeRule::pixels(50.0f),
+                .height = SizeRule::pixels(20.0f),
+                .background = gray,
+            });
+        }
+
+        // The second box draws nothing.
+        ui.box({
+            .width = SizeRule::pixels(50.0f),
+            .height = SizeRule::pixels(20.0f),
+        });
+        ui.endFrame();
+        const bool wanted = ui.wantsMouse();
+        input.beginFrame();
+        return wanted;
+    };
+
+    // The UI only knows what it drew once its first frame has ended.
+    input.onMouseMove({10.0f, 10.0f});
+    CHECK_FALSE(frame());
+    CHECK(frame());
+    input.onMouseMove({10.0f, 30.0f});
+    CHECK_FALSE(frame());
+
+    // A press over the UI keeps the mouse with the UI wherever it moves, up to the frame in which it ends.
+    input.onMouseMove({10.0f, 10.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    CHECK(frame());
+    input.onMouseMove({300.0f, 300.0f});
+    CHECK(frame());
+    input.onMouseButtonUp(MouseButton::Left);
+    CHECK(frame());
+    CHECK_FALSE(frame());
+
+    // A press of the game keeps the mouse with the game, even over the UI.
+    input.onMouseButtonDown(MouseButton::Left);
+    CHECK_FALSE(frame());
+    input.onMouseMove({10.0f, 10.0f});
+    CHECK_FALSE(frame());
+    input.onMouseButtonUp(MouseButton::Left);
+    CHECK_FALSE(frame());
+    CHECK(frame());
+
+    // A box that the UI no longer draws lets go of the mouse after one frame.
+    drawn = false;
+    CHECK(frame());
+    CHECK_FALSE(frame());
+}
+
+TEST_CASE("The UI does not want the mouse over what a panel cuts off") {
+    constexpr etude::Color gray{
+        .r = 0.5f,
+        .g = 0.5f,
+        .b = 0.5f,
+    };
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        {
+            const auto panel = ui.panel({
+                .title = "List",
+                .position = {0.0f, 0.0f},
+                .size = {100.0f, 60.0f},
+            });
+            for (int i = 0; i < 3; ++i) {
+                ui.box({
+                    .width = SizeRule::pixels(50.0f),
+                    .height = SizeRule::pixels(20.0f),
+                    .background = gray,
+                });
+            }
+        }
+        ui.endFrame();
+        const bool wanted = ui.wantsMouse();
+        input.beginFrame();
+        return wanted;
+    };
+    frame();
+
+    // The panel ends at 60, and the third row starts at 64.
+    input.onMouseMove({10.0f, 70.0f});
+    CHECK_FALSE(frame());
+    input.onMouseMove({10.0f, 50.0f});
+    CHECK(frame());
+}

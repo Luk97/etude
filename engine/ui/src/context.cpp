@@ -77,6 +77,14 @@ namespace etude::ui {
             hot = Id{};
         }
 
+        // A press belongs to where it began until the button comes up, to the UI if it began over what the UI drew.
+        const bool overUi = std::ranges::any_of(lastDrawn, [&](const Rect& rect) { return rect.contains(mouse); });
+        if (input.pressed(MouseButton::Left)) {
+            pressOnUi = overUi;
+        }
+        const bool pressing = input.held(MouseButton::Left) || input.released(MouseButton::Left);
+        mouseWanted = pressing ? pressOnUi : overUi;
+
         // A press on a panel brings it to the front, and a press anywhere but on the field with the focus ends the
         // typing into it.
         if (input.pressed(MouseButton::Left)) {
@@ -126,6 +134,10 @@ namespace etude::ui {
 
     std::span<const DrawBatch> Context::batches() const {
         return drawBatches;
+    }
+
+    bool Context::wantsMouse() const {
+        return mouseWanted;
     }
 
     Signal Context::box(const BoxSpec& spec) {
@@ -251,6 +263,7 @@ namespace etude::ui {
         ranges.clear();
         lastRects.clear();
         lastClickable.clear();
+        lastDrawn.clear();
 
         drawNodes(0, nodes.size(), true);
         for (const Id id : panelOrder) {
@@ -315,16 +328,20 @@ namespace etude::ui {
             font.appendText(drawList, node.text, textPosition, frameScale, *node.textColor);
         }
 
-        // Sprites that follow each other with the same clip rectangle share a batch.
-        if (const std::size_t count = drawList.size() - first; count > 0) {
-            if (ranges.empty() || ranges.back().clip != clip) {
-                ranges.push_back({
-                    .clip = clip,
-                    .first = first,
-                });
-            }
-            ranges.back().count += count;
+        const std::size_t count = drawList.size() - first;
+        if (count == 0) {
+            return;
         }
+        lastDrawn.push_back(visiblePart(rect, clip));
+
+        // Sprites that follow each other with the same clip rectangle share a batch.
+        if (ranges.empty() || ranges.back().clip != clip) {
+            ranges.push_back({
+                .clip = clip,
+                .first = first,
+            });
+        }
+        ranges.back().count += count;
     }
 
     Color Context::highlight(Color color, bool hovered, bool held) {

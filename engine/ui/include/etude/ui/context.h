@@ -75,6 +75,12 @@ namespace etude::ui {
         /// with the matrix of the screen and the clip rectangle of its boxes.
         std::span<const DrawBatch> batches() const;
 
+        /// @brief Returns whether the mouse belongs to the UI in this frame, which the game should then leave alone.
+        /// A press of the left button belongs to where it began until the button comes up again, to the UI if the
+        /// mouse was over a box that the UI drew in the last frame. Without a press, the mouse belongs to the UI while
+        /// it is over such a box.
+        bool wantsMouse() const;
+
         /// @brief Adds a box without children to the box that is open.
         Signal box(const BoxSpec& spec);
 
@@ -246,6 +252,12 @@ namespace etude::ui {
         /// @brief The panel in front under the mouse, which covers everything below it.
         Id topPanel{};
 
+        /// @brief Whether the mouse belongs to the UI in this frame, as wantsMouse tells the game.
+        bool mouseWanted = false;
+
+        /// @brief Whether the last press of the left button began over a box that the UI drew.
+        bool pressOnUi = false;
+
         /// @brief The boxes of the frame in the order of building, so every parent comes before its children.
         std::vector<Node> nodes;
 
@@ -257,6 +269,9 @@ namespace etude::ui {
 
         /// @brief The clickable boxes of the last frame in drawing order, so the last one under the mouse is on top.
         std::vector<Clickable> lastClickable;
+
+        /// @brief The visible parts of the boxes that drew something in the last frame.
+        std::vector<Rect> lastDrawn;
 
         std::unordered_map<Id, PanelState> panels;
 

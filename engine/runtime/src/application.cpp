@@ -52,18 +52,21 @@ namespace etude {
             steps += dueSteps;
             ++frames;
 
-            // The sprites start anew in every frame, those of the world first. A Camera in the world points the camera
-            // anew in every frame, without one it stays where the game left it.
+            // The sprites and batches start anew in every frame, the sprites of the world first. A Camera in the world
+            // points the camera anew in every frame, without one it stays where the game left it.
             renderList.sprites.clear();
+            renderList.batches.clear();
             drawScene(sceneWorld, window.clientSize(), lookup, renderList);
             onDraw(renderList);
             const std::chrono::nanoseconds gameTime = game.elapsed();
 
+            // All sprites go through the camera as the first batch, the batches of the game cover them.
             const DrawBatch worldBatch{
                 .viewProjection = renderList.camera.viewProjection(window.clientSize()),
                 .sprites = renderList.sprites,
             };
-            renderer->render({&worldBatch, 1});
+            renderList.batches.insert(renderList.batches.begin(), worldBatch);
+            renderer->render(renderList.batches);
             const FrameTimes times = renderer->frameTimes();
             cpuTime += gameTime + times.cpu;
             gpuTime += times.gpu;
