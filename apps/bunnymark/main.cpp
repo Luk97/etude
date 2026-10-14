@@ -152,7 +152,7 @@ namespace {
             panel(ui, "Hasen", {8.0f, 8.0f}, {232.0f, 128.0f}, [&] {
                 text(ui, measured);
                 text(ui, std::format("{} Hasen", bunnies.size()));
-                row(ui, etude::ui::Modifier().spacedBy(etude::ui::theme::gap), [&] {
+                row(ui, etude::ui::Modifier().spacedBy(etude::ui::theme::spacing), [&] {
                     if (button(ui, std::format("+{}", bunniesPerClick)).clicked) {
                         const etude::Size size = windowSize();
                         for (int i = 0; i < bunniesPerClick; ++i) {

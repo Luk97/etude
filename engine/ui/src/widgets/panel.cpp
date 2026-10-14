@@ -20,9 +20,9 @@ namespace etude::ui {
         Interaction interaction;
 
         // The panel is a floating column of a fixed size, with its title above the content.
-        const Modifier frame =
+        const Modifier window =
             Modifier().key(title).floating(position).size(size.x, size.y).background(theme::panelColor);
-        column(ui, frame, [&] {
+        column(ui, window, [&] {
             // The title stretches over the whole width, shows the visible title in its middle and drags the panel.
             const Modifier bar = Modifier()
                                      .key("##title")
@@ -38,7 +38,7 @@ namespace etude::ui {
                                       .fillMaxWidth()
                                       .height(size.y - theme::lineHeight)
                                       .padding(contentPadding)
-                                      .spacedBy(theme::gap)
+                                      .spacedBy(theme::spacing)
                                       .clip()
                                       .verticalScroll();
             column(ui, body, content);

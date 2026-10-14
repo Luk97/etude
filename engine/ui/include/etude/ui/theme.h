@@ -7,12 +7,14 @@
 /// height of a line and the space between widgets, with lengths in pixels at scale 1.
 namespace etude::ui::theme {
 
+    /// @brief The color of every text and of the cursor in a text field.
     inline constexpr Color textColor{
         .r = 0.9f,
         .g = 0.9f,
         .b = 0.9f,
     };
 
+    /// @brief The color of what can be clicked and is off, such as a button, an empty checkbox or the bar of a slider.
     inline constexpr Color buttonColor{
         .r = 0.25f,
         .g = 0.27f,
@@ -26,6 +28,7 @@ namespace etude::ui::theme {
         .b = 0.9f,
     };
 
+    /// @brief The background of a text field.
     inline constexpr Color fieldColor{
         .r = 0.12f,
         .g = 0.13f,
@@ -39,6 +42,7 @@ namespace etude::ui::theme {
         .b = 0.11f,
     };
 
+    /// @brief The color of the title of a panel.
     inline constexpr Color titleColor{
         .r = 0.2f,
         .g = 0.3f,
@@ -52,7 +56,7 @@ namespace etude::ui::theme {
     inline constexpr float lineHeight = PixelFont::cellHeight + 2.0f * linePadding;
 
     /// @brief The space between the widgets of a panel or of a row of buttons.
-    inline constexpr float gap = 3.0f;
+    inline constexpr float spacing = 3.0f;
 
     /// @brief Returns the color of a clickable element: lighter while the mouse is over it, darker while it is held. A
     /// clickable element gets it for its background by itself, and widgets call it for parts that light up with the

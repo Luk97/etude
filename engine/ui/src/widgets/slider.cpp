@@ -33,8 +33,8 @@ namespace etude::ui {
                                        .background(theme::buttonColor)
                                        .clickable();
             interaction = box(ui, track, [&](const Interaction& self) {
-                // From the press on and while the bar is held, the value follows the mouse, kept between min and max.
-                // A press that comes up again within the same frame, such as a tap on a touchpad, counts as well.
+                // From the press on and while the bar is held, the value follows the mouse, kept between min and max. A
+                // press that comes up again within the same frame, such as a tap on a touchpad, counts as well.
                 if (self.pressed || self.held) {
                     const float share = (ui.input().mousePosition().x - self.rect.position.x) / self.rect.size.x;
                     value = min + (max - min) * std::clamp(share, 0.0f, 1.0f);

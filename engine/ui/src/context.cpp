@@ -177,7 +177,7 @@ namespace etude::ui {
             .arrangement = arrangement,
             .alignment = settings.alignment,
             .padding = {padding[0] * scale, padding[1] * scale},
-            .gap = settings.spacing * scale,
+            .spacing = settings.spacing * scale,
             .clip = settings.clip,
             .clickable = clickable,
             .scrolls = settings.verticalScroll,

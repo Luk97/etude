@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <etude/ui/context.h>
+#include <etude/ui/label.h>
 #include <etude/ui/row.h>
 #include <etude/ui/text.h>
 #include <etude/ui/widgets/button.h>
@@ -25,7 +26,7 @@ namespace {
     constexpr auto fontTexture = static_cast<etude::TextureId>(7);
     constexpr etude::Size screen{640, 360};
 
-    /// @brief Counts the sprites of the last frame that show a character.
+    // Counts the sprites of the last frame that show a character.
     auto countGlyphs(const Context& ui) {
         return std::ranges::count_if(ui.sprites(), [](const etude::Sprite& sprite) {
             return sprite.texture == fontTexture;
@@ -105,6 +106,12 @@ TEST_CASE("A button draws its background and then its text in the middle") {
     CHECK(sprites[1].position == Vec2{6.0f, 3.0f});
     CHECK(sprites[1].texture == fontTexture);
     CHECK(sprites[2].position == Vec2{12.0f, 3.0f});
+}
+
+TEST_CASE("Only the part of a label before ## shows") {
+    STATIC_REQUIRE(etude::ui::visibleText("OK##2") == "OK");
+    STATIC_REQUIRE(etude::ui::visibleText("OK") == "OK");
+    STATIC_REQUIRE(etude::ui::visibleText("##hidden").empty());
 }
 
 TEST_CASE("Buttons whose labels only differ after ## look alike but stay apart") {

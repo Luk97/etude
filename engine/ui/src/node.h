@@ -50,7 +50,7 @@ namespace etude::ui {
         Arrangement arrangement = Arrangement::Column;
         Alignment alignment = Alignment::Start;
         std::array<float, 2> padding{};
-        float gap = 0.0f;
+        float spacing = 0.0f;
         bool clip = false;
 
         /// @brief Whether the element takes the mouse, as clickable and focusable elements and drag handles do.
@@ -80,7 +80,8 @@ namespace etude::ui {
         /// from the padding.
         float nextChild = 0.0f;
 
-        /// @brief How many children the layout pass has placed so far, so that a gap only goes between two of them.
+        /// @brief How many children the layout pass has placed so far, so that the spacing only goes between two of
+        /// them.
         std::size_t placedChildren = 0;
 
         /// @brief How large the children are together, without the padding: along the direction in which they follow

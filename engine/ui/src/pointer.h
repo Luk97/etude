@@ -32,10 +32,19 @@ namespace etude::ui {
         /// @brief Lets go of the held element once the left button is up, even if the element has disappeared.
         void endFrame(const Input& input);
 
+        /// @brief Returns the clickable element that may react to the mouse in this frame, Id{} if there is none.
         Id hot() const;
+
+        /// @brief Returns the element that the left button holds, Id{} if it holds none.
         Id active() const;
+
+        /// @brief Returns the floating element in front under the mouse, Id{} outside of them.
         Id topLayer() const;
+
+        /// @brief Returns the element that the wheel scrolls, Id{} if there is none under the mouse.
         Id scrollTarget() const;
+
+        /// @brief Returns whether the mouse belongs to the UI in this frame.
         bool wantsMouse() const;
 
     private:

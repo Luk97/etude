@@ -11,8 +11,8 @@ namespace etude::ui {
 
     Interaction checkbox(Context& ui, std::string_view label, bool& value) {
         // The whole row takes the clicks, so the text beside the square flips the value as well.
-        const Modifier line = Modifier().key(label).clickable();
-        return row(ui, line, [&](const Interaction& self) {
+        const Modifier entry = Modifier().key(label).clickable();
+        return row(ui, entry, [&](const Interaction& self) {
             // The click flips the value before the square shows it, so the square is right in the same frame.
             if (self.clicked) {
                 value = !value;

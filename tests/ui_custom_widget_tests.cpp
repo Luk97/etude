@@ -22,15 +22,15 @@ namespace {
     constexpr auto fontTexture = static_cast<etude::TextureId>(7);
     constexpr etude::Size screen{640, 360};
 
-    /// @brief A widget as a game would write it, from nothing but the public parts of etude.ui, like the built-in
-    /// widgets: a switch that shows its label and An or Aus, and flips the value on a click.
+    // A widget as a game would write it, from nothing but the public parts of etude.ui, like the built-in widgets: a
+    // switch that shows its label and An or Aus, and flips the value on a click.
     Interaction toggle(Context& ui, std::string_view label, bool& value) {
         // The whole switch is one clickable row, colored by its value.
-        const Modifier frame = Modifier()
-                                   .key(label)
-                                   .background(value ? etude::ui::theme::accentColor : etude::ui::theme::buttonColor)
-                                   .clickable();
-        return row(ui, frame, [&](const Interaction& self) {
+        const Modifier face = Modifier()
+                                  .key(label)
+                                  .background(value ? etude::ui::theme::accentColor : etude::ui::theme::buttonColor)
+                                  .clickable();
+        return row(ui, face, [&](const Interaction& self) {
             // As in the checkbox, the click flips the value before the texts show it.
             if (self.clicked) {
                 value = !value;

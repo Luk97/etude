@@ -2,7 +2,6 @@
 
 #include <etude/ui/box.h>
 #include <etude/ui/context.h>
-#include <etude/ui/label.h>
 #include <etude/ui/modifier.h>
 #include <etude/ui/row.h>
 
@@ -225,12 +224,6 @@ TEST_CASE("Keys that only join to the same text still name different elements") 
     frame();
     input.onMouseButtonUp(MouseButton::Left);
     CHECK(frame() == std::pair{false, true});
-}
-
-TEST_CASE("Only the part of a label before ## shows") {
-    STATIC_REQUIRE(etude::ui::visibleText("OK##2") == "OK");
-    STATIC_REQUIRE(etude::ui::visibleText("OK") == "OK");
-    STATIC_REQUIRE(etude::ui::visibleText("##hidden").empty());
 }
 
 TEST_CASE("The UI also wants the mouse over an element that takes the mouse without drawing anything") {

@@ -184,8 +184,8 @@ TEST_CASE("Padding keeps the children away from the edge of their layout, and sp
         ui.endFrame();
     }
 
-    // The column takes 10 by 10 + 2 + 10 pixels and 4 more on each side. The share fills the 30 by 10 pixels inside
-    // the padding of 5.
+    // The column takes 10 by 10 + 2 + 10 pixels and 4 more on each side. The share fills the 30 by 10 pixels inside the
+    // padding of 5.
     CHECK(outer.rect.size == Vec2{18.0f, 30.0f});
     CHECK(second.rect.position == Vec2{4.0f, 16.0f});
     CHECK(share.rect.size == Vec2{30.0f, 10.0f});

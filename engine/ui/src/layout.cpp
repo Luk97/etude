@@ -67,7 +67,7 @@ namespace etude::ui {
                     case SizeRule::Kind::Children: {
                         const std::size_t gaps =
                             mainAxis(node) == axis && node.childCount > 1 ? node.childCount - 1 : 0;
-                        node.size[axis] = 2.0f * node.padding[axis] + static_cast<float>(gaps) * node.gap;
+                        node.size[axis] = 2.0f * node.padding[axis] + static_cast<float>(gaps) * node.spacing;
                         break;
                     }
                 }
@@ -109,7 +109,7 @@ namespace etude::ui {
             }
 
             // Every child starts inside the padding of its parent. Along the direction of a row or a column, it follows
-            // its previous sibling after the gap. Across it, and on both axes of a box, it sits where the alignment
+            // its previous sibling after the spacing. Across it, and on both axes of a box, it sits where the alignment
             // puts it in the space that it leaves free. On the way, the parent learns how large its children are
             // together.
             const std::optional<std::size_t> along = mainAxis(parent);
@@ -117,7 +117,7 @@ namespace etude::ui {
                 const float start = parent.position[axis] + parent.padding[axis];
                 if (along == axis) {
                     if (parent.placedChildren > 0) {
-                        parent.nextChild += parent.gap;
+                        parent.nextChild += parent.spacing;
                     }
                     node.position[axis] = start + parent.nextChild;
                     parent.nextChild += node.size[axis];

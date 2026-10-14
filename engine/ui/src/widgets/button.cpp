@@ -17,8 +17,8 @@ namespace etude::ui {
     Interaction button(Context& ui, std::string_view label) {
         // The whole label names the clickable box, whose background lights up under the mouse by itself. The text keeps
         // the height of a line, but gets more room to the left and the right.
-        const Modifier frame = Modifier().key(label).background(theme::buttonColor).clickable();
-        return box(ui, frame, [&] {
+        const Modifier face = Modifier().key(label).background(theme::buttonColor).clickable();
+        return box(ui, face, [&] {
             text(ui, visibleText(label), Modifier().padding(textPadding, theme::linePadding));
         });
     }
