@@ -21,7 +21,7 @@ namespace etude::ui {
     /// with where the elements ended up.
     ///
     /// The next frame tests the mouse against the picture: against the rectangles of the elements with a key, the
-    /// elements that take clicks or scroll, and the parts of the screen that the UI drew on. Everything outside of
+    /// elements that take clicks or scroll, and the parts of the screen that the UI covers. Everything outside of
     /// floating elements is drawn first, the floating elements follow from back to front, so the one in front covers
     /// the others. Children only draw inside the clip rectangle of their parents, and sprites that follow each other
     /// with the same clip rectangle share a batch.
@@ -65,8 +65,9 @@ namespace etude::ui {
         /// is the innermost.
         std::span<const HitArea> scrollables() const;
 
-        /// @brief Returns the visible parts of the elements that drew something in the last picture.
-        std::span<const Rect> drawn() const;
+        /// @brief Returns the visible parts of the elements that cover the screen in the last picture: those that drew
+        /// something, and those that take the mouse or scroll even without drawing.
+        std::span<const Rect> covered() const;
 
     private:
         /// @brief Sprites that follow each other in the draw list and share a clip rectangle.
@@ -97,7 +98,7 @@ namespace etude::ui {
         std::vector<HitArea> lastClickables;
         std::vector<HitArea> lastScrollables;
 
-        /// @brief The visible parts of the elements that drew something, for drawn.
-        std::vector<Rect> lastDrawn;
+        /// @brief The visible parts of the elements that cover the screen, for covered.
+        std::vector<Rect> lastCovered;
     };
 }

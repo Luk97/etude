@@ -21,7 +21,8 @@ namespace etude::ui {
     public:
         /// @brief Finds the floating element in front under the mouse, the clickable element on top under the mouse,
         /// which becomes hot unless another element is held, and the innermost scrolling element under the mouse. A
-        /// press belongs to where it began until the button comes up, to the UI if it began over what the UI drew.
+        /// press belongs to where it began, up to and including the frame in which the button comes up, to the UI if it
+        /// began over what the UI covers.
         void beginFrame(const Input& input, const Painter& picture, std::span<const Id> layerOrder);
 
         /// @brief Returns what the mouse does with a clickable element in this frame. A press on the hot element makes
@@ -55,7 +56,7 @@ namespace etude::ui {
         /// @brief Whether the mouse belongs to the UI in this frame.
         bool mouseWanted = false;
 
-        /// @brief Whether the last press of the left button began over an element that the UI drew.
+        /// @brief Whether the last press of the left button began over what the UI covers.
         bool pressOnUi = false;
     };
 }

@@ -26,7 +26,7 @@ namespace etude::ui {
         lastRects.clear();
         lastClickables.clear();
         lastScrollables.clear();
-        lastDrawn.clear();
+        lastCovered.clear();
 
         // First everything outside of floating elements, then each floating element with its subtree, from back to
         // front. Floating elements that this frame did not build any more are missing from the nodes and so skipped.
@@ -71,8 +71,8 @@ namespace etude::ui {
         return lastScrollables;
     }
 
-    std::span<const Rect> Painter::drawn() const {
-        return lastDrawn;
+    std::span<const Rect> Painter::covered() const {
+        return lastCovered;
     }
 
     void Painter::drawNodes(const Frame& frame, std::size_t first, std::size_t end, bool skipFloating) {
@@ -131,12 +131,14 @@ namespace etude::ui {
             font.appendText(drawList, node.text, textPosition, frame.scale, *node.textColor);
         }
 
-        // Only what drew something covers the screen, so only its visible part makes the UI want the mouse.
+        // What drew something or takes the mouse covers the screen, so its visible part makes the UI want the mouse.
         const std::size_t count = drawList.size() - first;
+        if (count > 0 || node.clickable || node.scrolls) {
+            lastCovered.push_back(visiblePart(rect, clip));
+        }
         if (count == 0) {
             return;
         }
-        lastDrawn.push_back(visiblePart(rect, clip));
 
         // Sprites that follow each other with the same clip rectangle share a batch.
         if (ranges.empty() || ranges.back().clip != clip) {

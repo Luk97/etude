@@ -45,10 +45,11 @@ namespace etude::ui {
         // A scrolling element inside another is drawn after it, so the last one under the mouse is the innermost.
         scrollTargetId = lastUnder(picture.scrollables(), mouse, topLayerId);
 
-        // A press belongs to where it began until the button comes up, to the UI if it began over what the UI drew.
-        // Without a press, the mouse belongs to the UI while it is over what the UI drew.
+        // A press belongs to where it began, up to and including the frame in which the button comes up, to the UI if
+        // it began over what the UI covers. Without a press, the mouse belongs to the UI while it is over what the UI
+        // covers.
         const bool overUi =
-            std::ranges::any_of(picture.drawn(), [&](const Rect& rect) { return rect.contains(mouse); });
+            std::ranges::any_of(picture.covered(), [&](const Rect& rect) { return rect.contains(mouse); });
         if (input.pressed(MouseButton::Left)) {
             pressOnUi = overUi;
         }

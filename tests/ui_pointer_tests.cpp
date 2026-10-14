@@ -233,6 +233,29 @@ TEST_CASE("Only the part of a label before ## shows") {
     STATIC_REQUIRE(etude::ui::visibleText("##hidden").empty());
 }
 
+TEST_CASE("The UI also wants the mouse over an element that takes the mouse without drawing anything") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        row(ui, Modifier().key("Row").spacedBy(10.0f).clickable(), [&] {
+            box(ui, Modifier().size(20.0f, 20.0f).background(gray));
+            box(ui, Modifier().size(20.0f, 20.0f).background(gray));
+        });
+        ui.endFrame();
+        const bool wanted = ui.wantsMouse();
+        input.beginFrame();
+        return wanted;
+    };
+    frame();
+
+    // The gap between the two squares draws nothing, but it belongs to the clickable row.
+    input.onMouseMove({25.0f, 10.0f});
+    CHECK(frame());
+    input.onMouseMove({100.0f, 10.0f});
+    CHECK_FALSE(frame());
+}
+
 TEST_CASE("The UI wants the mouse over what it drew, and a press belongs to where it began until it ends") {
     Input input;
     Context ui{PixelFont{fontTexture}};

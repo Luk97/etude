@@ -68,9 +68,9 @@ namespace etude::ui {
         std::span<const DrawBatch> batches() const;
 
         /// @brief Returns whether the mouse belongs to the UI in this frame, which the game should then leave alone. A
-        /// press of the left button belongs to where it began until the button comes up again, to the UI if the mouse
-        /// was over an element that the UI drew in the last frame. Without a press, the mouse belongs to the UI while
-        /// it is over such an element.
+        /// press of the left button belongs to where it began, up to and including the frame in which the button comes
+        /// up, to the UI if the mouse was over an element of the last frame that drew something or takes the mouse.
+        /// Without a press, the mouse belongs to the UI while it is over such an element.
         bool wantsMouse() const;
 
         /// @brief Returns whether the keyboard belongs to the UI, which is the case while an element has the focus.
