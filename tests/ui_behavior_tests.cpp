@@ -221,3 +221,36 @@ TEST_CASE("Dragging a handle moves its floating element, which keeps the point w
     frame();
     CHECK(handle.rect.position == Vec2{130.0f, 70.0f});
 }
+
+TEST_CASE("A dragged handle stays on the screen, even when the mouse leaves the window") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Interaction handle;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        box(ui, Modifier().key("Window").floating({100.0f, 50.0f}).size(80.0f, 40.0f).background(gray),
+            [&] { handle = box(ui, Modifier().key("Handle").size(80.0f, 10.0f).dragHandle()); });
+        ui.endFrame();
+        input.beginFrame();
+    };
+    const auto drag = [&](Vec2 from, Vec2 to) {
+        input.onMouseMove(from);
+        input.onMouseButtonDown(MouseButton::Left);
+        frame();
+        input.onMouseMove(to);
+        frame();
+        input.onMouseButtonUp(MouseButton::Left);
+        frame();
+        frame();
+    };
+    frame();
+    frame();
+
+    // The handle is grabbed 10 by 5 pixels into it, and that point stops at the top left corner of the screen.
+    drag({110.0f, 55.0f}, {-300.0f, -300.0f});
+    CHECK(handle.rect.position == Vec2{-10.0f, -5.0f});
+
+    // Grabbed there again, the same point stops at the last pixel of the screen on the other side.
+    drag({0.0f, 0.0f}, {5000.0f, 5000.0f});
+    CHECK(handle.rect.position == Vec2{629.0f, 354.0f});
+}

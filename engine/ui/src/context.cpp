@@ -9,6 +9,7 @@
 #include "size_rule.h"
 
 #include <etude/core/assert.h>
+#include <etude/math/vec2.h>
 #include <etude/ui/theme.h>
 
 #include <algorithm>
@@ -206,10 +207,17 @@ namespace etude::ui {
         }
         interaction.focused = settings.focusable && memory->focus == id;
 
-        // Dragging a handle moves its floating element, which keeps the point where the mouse grabbed it.
+        // Dragging a handle moves its floating element, which keeps the point where the mouse grabbed it. While the
+        // window holds the mouse, it reports positions beyond its edges as well, so the mouse counts as if it stayed on
+        // the screen, and the point that the mouse holds stays on the screen with it.
         if (settings.dragHandle && opened.layer != Id{}) {
             LayerState& layer = memory->layers.at(opened.layer);
-            const Vec2 mouse = frameInput->mousePosition();
+            const Vec2 screen = tree->node(0).rect().size;
+            const Vec2 reported = frameInput->mousePosition();
+            const Vec2 mouse{
+                .x = std::clamp(reported.x, 0.0f, std::max(screen.x - 1.0f, 0.0f)),
+                .y = std::clamp(reported.y, 0.0f, std::max(screen.y - 1.0f, 0.0f)),
+            };
             if (interaction.pressed) {
                 layer.grab = mouse - layer.position;
             }

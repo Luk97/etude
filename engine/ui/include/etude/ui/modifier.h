@@ -90,8 +90,9 @@ namespace etude::ui {
         /// the top level, where they take no space from the other elements.
         [[nodiscard]] Modifier floating(Vec2 start) const;
 
-        /// @brief Lets dragging this element move the floating element that it lies in, as the title of a panel does. A
-        /// drag handle is clickable as well, and outside of floating elements it moves nothing.
+        /// @brief Lets dragging this element move the floating element that it lies in, as the title of a panel does.
+        /// The point where the mouse grabbed the handle stays on the screen, so the handle can always be reached again.
+        /// A drag handle is clickable as well, and outside of floating elements it moves nothing.
         [[nodiscard]] Modifier dragHandle() const;
 
     private:
