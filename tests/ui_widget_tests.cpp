@@ -315,6 +315,19 @@ TEST_CASE("A click into the field with the focus keeps the cursor, which stays i
     CHECK(field.text == "Ha!");
 }
 
+TEST_CASE("The cursor moves to the start of a character when the game changes the text around it") {
+    TextFieldFrames field{
+        .text = "a",
+    };
+    field.frame();
+
+    // The cursor stands after the a, at byte 1, which lies inside the two bytes of the ä that the game puts there.
+    field.clickAt({60.0f, 5.0f});
+    field.text = "ä";
+    field.type(u'b');
+    CHECK(field.text == "bä");
+}
+
 TEST_CASE("A text field cuts off text that does not fit") {
     Input input;
     Context ui{PixelFont{fontTexture}};

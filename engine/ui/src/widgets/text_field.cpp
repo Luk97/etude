@@ -24,8 +24,13 @@ namespace etude::ui {
         /// @brief Applies the typed text and the editing keys of the frame to the text at the cursor. The cursor counts
         /// bytes and jumps over whole UTF-8 characters.
         void edit(const Input& input, std::string& text, std::size_t& cursor) {
-            // The cursor may stand past the end, after the field gained the focus or the game shortened the text.
+            // The cursor may stand past the end, after the field gained the focus or the game shortened the text, and
+            // inside a character, after the game changed the text. It moves back to the end or to the start of that
+            // character.
             cursor = std::min(cursor, text.size());
+            if (cursor < text.size()) {
+                cursor = previousCharacter(text, cursor + 1);
+            }
 
             // Typed text goes in at the cursor, which moves behind it.
             if (const std::string_view typed = input.text(); !typed.empty()) {
