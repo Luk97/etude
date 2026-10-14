@@ -283,3 +283,51 @@ TEST_CASE("A dragged handle stays on the screen, even when the mouse leaves the 
     drag({0.0f, 0.0f}, {5000.0f, 5000.0f});
     CHECK(handle.rect.position == Vec2{629.0f, 354.0f});
 }
+
+TEST_CASE("The scale multiplies where a floating element starts and how far a notch of the wheel scrolls") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    std::array<Interaction, 5> rows;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 2);
+        column(ui, Modifier().key("Window").floating({10.0f, 20.0f}).size(50.0f, 60.0f).clip().verticalScroll(), [&] {
+            for (std::size_t i = 0; i < rows.size(); ++i) {
+                rows[i] = box(ui, Modifier().key(std::format("Row {}", i)).size(50.0f, 20.0f));
+            }
+        });
+        ui.endFrame();
+        input.beginFrame();
+    };
+    frame();
+    frame();
+    CHECK(rows[0].rect.position == Vec2{20.0f, 40.0f});
+
+    // At scale 2, one notch moves the rows up by 48 pixels.
+    input.onMouseMove({30.0f, 50.0f});
+    input.onWheel(-1.0f);
+    frame();
+    frame();
+    CHECK(rows[0].rect.position.y == -8.0f);
+}
+
+TEST_CASE("A drag handle outside of floating elements moves nothing") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Interaction handle;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        handle = box(ui, Modifier().key("Handle").size(80.0f, 10.0f).dragHandle());
+        ui.endFrame();
+        input.beginFrame();
+    };
+    frame();
+    input.onMouseMove({10.0f, 5.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    frame();
+    input.onMouseMove({100.0f, 100.0f});
+    frame();
+    input.onMouseButtonUp(MouseButton::Left);
+    frame();
+    frame();
+    CHECK(handle.rect.position == Vec2{0.0f, 0.0f});
+}

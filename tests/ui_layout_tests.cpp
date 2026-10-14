@@ -205,3 +205,82 @@ TEST_CASE("A row keeps its spacing between its children") {
     }
     CHECK(right.rect.position == Vec2{13.0f, 0.0f});
 }
+
+TEST_CASE("A box aligns its children on both axes, and a column only from left to right") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Interaction ended;
+    Interaction centered;
+    for (int frame = 0; frame < 2; ++frame) {
+        ui.beginFrame(input, screen, 1);
+        box(ui, Modifier().key("Box").size(100.0f, 50.0f).contentAlignment(Alignment::End),
+            [&] { ended = box(ui, Modifier().key("Child").size(20.0f, 10.0f)); });
+        column(ui, Modifier().key("Column").size(100.0f, 50.0f).contentAlignment(Alignment::Center), [&] {
+            centered = box(ui, Modifier().key("Child").size(20.0f, 10.0f));
+        });
+        ui.endFrame();
+    }
+
+    // The box puts its child into its bottom right corner. The column below it starts at y 50 and only centers its
+    // child from left to right.
+    CHECK(ended.rect.position == Vec2{80.0f, 40.0f});
+    CHECK(centered.rect.position == Vec2{40.0f, 50.0f});
+}
+
+TEST_CASE("The scale multiplies the spacing as well") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Interaction right;
+    for (int frame = 0; frame < 2; ++frame) {
+        ui.beginFrame(input, screen, 2);
+        row(ui, Modifier().spacedBy(3.0f), [&] {
+            box(ui, Modifier().key("Left").size(10.0f, 10.0f));
+            right = box(ui, Modifier().key("Right").size(10.0f, 10.0f));
+        });
+        ui.endFrame();
+    }
+    CHECK(right.rect.position == Vec2{26.0f, 0.0f});
+}
+
+TEST_CASE("A floating element takes no space from the elements beside it") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Interaction after;
+    for (int frame = 0; frame < 2; ++frame) {
+        ui.beginFrame(input, screen, 1);
+        box(ui, Modifier().key("Window").floating({200.0f, 100.0f}).size(50.0f, 50.0f));
+        after = box(ui, Modifier().key("After").size(20.0f, 20.0f));
+        ui.endFrame();
+    }
+    CHECK(after.rect.position == Vec2{0.0f, 0.0f});
+}
+
+TEST_CASE("A text sits in the middle of an element that is larger than its line") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    ui.beginFrame(input, screen, 1);
+    text(ui, "OK", Modifier().size(40.0f, 20.0f));
+    ui.endFrame();
+
+    // Two characters cover 12 by 8 pixels, which leaves 28 by 12 pixels around them, half on each side.
+    REQUIRE(ui.sprites().size() == 2);
+    CHECK(ui.sprites()[0].position == Vec2{14.0f, 6.0f});
+}
+
+TEST_CASE("A fixed length wins over a share, whichever comes first, and a box keeps no spacing") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Interaction first;
+    Interaction second;
+    for (int frame = 0; frame < 2; ++frame) {
+        ui.beginFrame(input, screen, 1);
+        box(ui, Modifier().key("Parent").size(200.0f, 100.0f).spacedBy(10.0f), [&] {
+            first = box(ui, Modifier().key("First").width(30.0f).fillMaxWidth().height(10.0f));
+            second = box(ui, Modifier().key("Second").fillMaxWidth().width(30.0f).height(10.0f));
+        });
+        ui.endFrame();
+    }
+    CHECK(first.rect.size.x == 30.0f);
+    CHECK(second.rect.size.x == 30.0f);
+    CHECK(second.rect.position == Vec2{0.0f, 0.0f});
+}

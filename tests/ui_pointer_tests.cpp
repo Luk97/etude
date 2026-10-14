@@ -298,3 +298,62 @@ TEST_CASE("The UI wants the mouse over what it drew, and a press belongs to wher
     CHECK(frame());
     CHECK_FALSE(frame());
 }
+
+TEST_CASE("Clicks miss what an element cuts off, even when nothing scrolls") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        bool clicked = false;
+        box(ui, Modifier().key("Clip").size(50.0f, 20.0f).clip(),
+            [&] { clicked = box(ui, Modifier().key("Inner").size(100.0f, 20.0f).clickable()).clicked; });
+        ui.endFrame();
+        input.beginFrame();
+        return clicked;
+    };
+    const auto clickAt = [&](Vec2 position) {
+        input.onMouseMove(position);
+        input.onMouseButtonDown(MouseButton::Left);
+        frame();
+        input.onMouseButtonUp(MouseButton::Left);
+        return frame();
+    };
+    frame();
+
+    // The inner element reaches to x 100, but only its first 50 pixels show.
+    CHECK_FALSE(clickAt({75.0f, 10.0f}));
+    CHECK(clickAt({25.0f, 10.0f}));
+}
+
+TEST_CASE("A held element that disappears lets go of the mouse, so that the other elements react again") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    bool shown = true;
+    Interaction right;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        row(ui, Modifier().key("Row"), [&] {
+            if (shown) {
+                box(ui, Modifier().key("Left").size(20.0f, 20.0f).clickable());
+            } else {
+                box(ui, Modifier().size(20.0f, 20.0f));
+            }
+            right = box(ui, Modifier().key("Right").size(20.0f, 20.0f).clickable());
+        });
+        ui.endFrame();
+        input.beginFrame();
+    };
+    frame();
+
+    // The left element is held when it goes, and the button comes up while it is gone.
+    input.onMouseMove({5.0f, 5.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    frame();
+    shown = false;
+    frame();
+    input.onMouseButtonUp(MouseButton::Left);
+    frame();
+    input.onMouseMove({25.0f, 5.0f});
+    frame();
+    CHECK(right.hovered);
+}
