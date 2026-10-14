@@ -202,6 +202,31 @@ TEST_CASE("Equal keys in different layouts name different elements") {
     CHECK(frame() == std::pair{false, true});
 }
 
+TEST_CASE("Keys that only join to the same text still name different elements") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        bool first = false;
+        bool second = false;
+        row(ui, Modifier().key("1"),
+            [&] { first = box(ui, Modifier().key("10").size(20.0f, 20.0f).clickable()).clicked; });
+        row(ui, Modifier().key("11"),
+            [&] { second = box(ui, Modifier().key("0").size(20.0f, 20.0f).clickable()).clicked; });
+        ui.endFrame();
+        input.beginFrame();
+        return std::pair{first, second};
+    };
+    frame();
+
+    // Both pairs of keys join to 110, but the mouse at y 25 only clicks the element of the second row.
+    input.onMouseMove({5.0f, 25.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    frame();
+    input.onMouseButtonUp(MouseButton::Left);
+    CHECK(frame() == std::pair{false, true});
+}
+
 TEST_CASE("Only the part of a label before ## shows") {
     STATIC_REQUIRE(etude::ui::visibleText("OK##2") == "OK");
     STATIC_REQUIRE(etude::ui::visibleText("OK") == "OK");
