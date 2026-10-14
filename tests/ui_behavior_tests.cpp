@@ -165,6 +165,35 @@ TEST_CASE("The wheel scrolls the element under the mouse, as far as its children
     CHECK(rows[4].rect.position.y == 20.0f);
 }
 
+TEST_CASE("When the content shrinks, the scrolling follows it in the same frame") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    std::array<Interaction, 5> rows;
+    std::size_t count = rows.size();
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        column(ui, Modifier().key("List").size(100.0f, 40.0f).clip().verticalScroll(), [&] {
+            for (std::size_t i = 0; i < count; ++i) {
+                rows[i] = box(ui, Modifier().key(std::format("Row {}", i)).size(50.0f, 20.0f));
+            }
+        });
+        ui.endFrame();
+        input.beginFrame();
+    };
+    frame();
+    frame();
+    input.onMouseMove({10.0f, 10.0f});
+    input.onWheel(-10.0f);
+    frame();
+
+    // Scrolled to the bottom, the list loses two rows, so it can only scroll by 20 pixels. The frame in which the rows
+    // go already shows the last row at the bottom, which the next frame reports.
+    count = 3;
+    frame();
+    frame();
+    CHECK(rows[2].rect.position.y == 20.0f);
+}
+
 TEST_CASE("The wheel scrolls the innermost scrolling element under the mouse") {
     Input input;
     Context ui{PixelFont{fontTexture}};

@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <limits>
+#include <span>
 #include <string>
 #include <utility>
 
@@ -73,12 +74,21 @@ namespace etude::ui {
         }
         layout(tree->nodes(), frameScale);
 
-        // How far the children reach beyond the bottom decides how far an element can scroll.
-        for (const Node& node : tree->nodes()) {
-            if (node.scrolls) {
-                ScrollState& scroll = memory->scrolls[node.id];
-                scroll.limit = std::max(node.contentSize[1] + 2.0f * node.padding[1] - node.size[1], 0.0f);
-                scroll.offset = std::min(scroll.offset, scroll.limit);
+        // How far the children reach beyond the bottom decides how far an element can scroll. If the content has shrunk
+        // below the offset, the offset shrinks with it, and the children move down by the difference in this frame.
+        const std::span<Node> nodes = tree->nodes();
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+            const Node& node = nodes[i];
+            if (!node.scrolls) {
+                continue;
+            }
+            ScrollState& scroll = memory->scrolls[node.id];
+            scroll.limit = std::max(node.contentSize[1] + 2.0f * node.padding[1] - node.size[1], 0.0f);
+            if (const float excess = scroll.offset - scroll.limit; excess > 0.0f) {
+                scroll.offset = scroll.limit;
+                for (std::size_t child = i + 1; child < node.end; ++child) {
+                    nodes[child].position[1] += excess;
+                }
             }
         }
 
