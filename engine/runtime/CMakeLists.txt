@@ -14,5 +14,5 @@ target_sources(etude_runtime
 )
 target_compile_features(etude_runtime PUBLIC cxx_std_23)
 target_link_libraries(etude_runtime
-    PUBLIC etude::core etude::math etude::rendering etude::render2d etude::platform etude::scene
+    PUBLIC etude::core etude::math etude::rendering etude::render2d etude::platform etude::scene etude::ui
     PRIVATE etude::assets etude::vulkan etude::warnings)

@@ -2,10 +2,13 @@
 
 #include <etude/core/clock.h>
 #include <etude/core/log.h>
+#include <etude/render2d/pixel_font.h>
 #include <etude/rendering/vulkan/vulkan_renderer.h>
 #include <etude/runtime/render_system.h>
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <format>
 #include <string>
 #include <utility>
@@ -21,11 +24,20 @@ namespace etude {
         double millisecondsPerFrame(std::chrono::nanoseconds total, int frames) {
             return std::chrono::duration<double, std::milli>(total).count() / frames;
         }
+
+        /// @brief Returns the scale of the UI on a display with the given scale. The pixel font is half as high as
+        /// ordinary text, so the UI takes twice the scale of the display, rounded to a whole number so that the font
+        /// stays sharp: 2 at 96 dpi, 3 at 144 dpi and 4 at 192 dpi.
+        int uiScale(float dpiScale) {
+            return std::max(1, static_cast<int>(std::lround(2.0f * dpiScale)));
+        }
     }
 
     Application::Application(std::string_view title, int width, int height, std::filesystem::path assetFolder)
         : title(title), window(title, width, height), renderer(createVulkanRenderer(window)),
-          textureCache(*renderer, std::move(assetFolder)), timestep(stepsPerSecond), limiter(initialFramesPerSecond) {
+          textureCache(*renderer, std::move(assetFolder)),
+          uiContext(PixelFont{renderer->createTexture(PixelFont::makeAtlas())}), timestep(stepsPerSecond),
+          limiter(initialFramesPerSecond) {
         addBuiltinComponents(componentTypes);
     }
 
@@ -41,10 +53,14 @@ namespace etude {
         while (!window.shouldClose()) {
             window.pollEvents();
 
-            // Measured without the window messages, which stop the loop while the window is dragged.
+            // Measured without the window messages, which stop the loop while the window is dragged. The UI starts its
+            // frame first, so that onFrame can already ask whether it wants the mouse.
             const Clock game;
-            onFrame(window.input());
+            const Input& input = window.input();
+            uiContext.beginFrame(input, window.clientSize(), uiScale(window.dpiScale()));
+            onFrame(input);
 
+            // The fixed timestep decides how many simulation steps this frame catches up on, none or several.
             const int dueSteps = timestep.advance(frameClock.restart());
             for (int i = 0; i < dueSteps; ++i) {
                 onStep(timestep.step());
@@ -58,28 +74,36 @@ namespace etude {
             renderList.batches.clear();
             drawScene(sceneWorld, window.clientSize(), lookup, renderList);
             onDraw(renderList);
+            onUi(uiContext);
+            uiContext.endFrame();
             const std::chrono::nanoseconds gameTime = game.elapsed();
 
-            // All sprites go through the camera as the first batch, the batches of the game cover them.
+            // All sprites go through the camera as the first batch, the batches of the game and then those of the UI
+            // cover them.
             const DrawBatch worldBatch{
                 .viewProjection = renderList.camera.viewProjection(window.clientSize()),
                 .sprites = renderList.sprites,
             };
             renderList.batches.insert(renderList.batches.begin(), worldBatch);
+            renderList.batches.append_range(uiContext.batches());
             renderer->render(renderList.batches);
             const FrameTimes times = renderer->frameTimes();
             cpuTime += gameTime + times.cpu;
             gpuTime += times.gpu;
 
+            // Once a second, the measurements go into the stats of the game, the title and the log, and start anew.
             const double elapsed = secondClock.elapsedSeconds();
             if (elapsed >= 1.0) {
+                stats = {
+                    .framesPerSecond = frames / elapsed,
+                    .stepsPerSecond = steps / elapsed,
+                    .cpuMilliseconds = millisecondsPerFrame(cpuTime, frames),
+                    .gpuMilliseconds = millisecondsPerFrame(gpuTime, frames),
+                };
                 window.setTitle(
-                    std::format("{} | {:.0f} fps | {:.0f} steps/s", title, frames / elapsed, steps / elapsed)
+                    std::format("{} | {:.0f} fps | {:.0f} steps/s", title, stats.framesPerSecond, stats.stepsPerSecond)
                 );
-                logInfo(
-                    "CPU {:.2f} ms, GPU {:.2f} ms per frame", millisecondsPerFrame(cpuTime, frames),
-                    millisecondsPerFrame(gpuTime, frames)
-                );
+                logInfo("CPU {:.2f} ms, GPU {:.2f} ms per frame", stats.cpuMilliseconds, stats.gpuMilliseconds);
                 frames = 0;
                 steps = 0;
                 cpuTime = {};
@@ -96,6 +120,8 @@ namespace etude {
     void Application::onStep(FixedTimestep::Duration) {}
 
     void Application::onDraw(RenderList&) {}
+
+    void Application::onUi(ui::Context&) {}
 
     void Application::setFramesPerSecond(int framesPerSecond) {
         limiter.setFramesPerSecond(framesPerSecond);
@@ -119,5 +145,13 @@ namespace etude {
 
     ComponentRegistry& Application::registry() {
         return componentTypes;
+    }
+
+    const ui::Context& Application::ui() const {
+        return uiContext;
+    }
+
+    const FrameStats& Application::frameStats() const {
+        return stats;
     }
 }

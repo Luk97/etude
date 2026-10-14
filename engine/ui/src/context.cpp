@@ -1,356 +1,221 @@
 #include <etude/ui/context.h>
 
+#include "arrangement.h"
+#include "frame_memory.h"
+#include "layout.h"
+#include "node_tree.h"
+#include "painter.h"
+#include "pointer.h"
+#include "size_rule.h"
+
 #include <etude/core/assert.h>
+#include <etude/ui/theme.h>
 
 #include <algorithm>
+#include <array>
+#include <limits>
+#include <string>
+#include <utility>
 
 namespace etude::ui {
 
     namespace {
 
-        constexpr Color white{
-            .r = 1.0f,
-            .g = 1.0f,
-            .b = 1.0f,
-        };
-
-        constexpr Color black = {};
-
-        /// @brief Returns the index of the axis in the arrays of a node.
-        constexpr std::size_t indexOf(Axis axis) {
-            return static_cast<std::size_t>(axis);
-        }
-
-        /// @brief Mixes two colors, from the first at 0 to the second at 1, and keeps the alpha of the first.
-        Color mix(Color from, Color to, float amount) {
-            return {
-                .r = from.r + (to.r - from.r) * amount,
-                .g = from.g + (to.g - from.g) * amount,
-                .b = from.b + (to.b - from.b) * amount,
-                .a = from.a,
-            };
-        }
-
-        /// @brief Returns the part of the rectangle inside the clip rectangle, or all of it without one.
-        Rect visiblePart(Rect rect, const std::optional<Rect>& clip) {
-            return clip ? clip->intersection(rect) : rect;
-        }
+        /// @brief How far one notch of the wheel scrolls, in pixels at scale 1.
+        constexpr float scrollStep = 24.0f;
     }
 
-    Scope::Scope(Context& context, int boxes) : context(context), boxes(boxes) {}
+    Context::Context(PixelFont font)
+        : tree(std::make_unique<NodeTree>()), pointer(std::make_unique<Pointer>()),
+          painter(std::make_unique<Painter>(font)), memory(std::make_unique<FrameMemory>()) {}
 
-    Scope::~Scope() {
-        for (int i = 0; i < boxes; ++i) {
-            context.endBox();
-        }
-    }
-
-    Context::Context(PixelFont font) : font(font) {}
+    Context::~Context() = default;
 
     void Context::beginFrame(const Input& input, Size screen, int scale) {
+        // The building blocks read the input and the scale up to endFrame. The mouse is tested against the picture of
+        // the last frame, which the painter still holds.
         frameInput = &input;
         frameScale = scale;
-        const Rect screenArea{
-            .size = {static_cast<float>(screen.width), static_cast<float>(screen.height)},
-        };
-        projection = Mat3::orthographic(screenArea);
-        const Vec2 mouse = input.mousePosition();
+        pointer->beginFrame(input, *painter, memory->layerOrder);
 
-        // The panel in front under the mouse covers everything below it, so only its own boxes can become hot.
-        topPanel = Id{};
-        for (auto id = panelOrder.rbegin(); id != panelOrder.rend(); ++id) {
-            if (const auto rect = lastRects.find(*id); rect != lastRects.end() && rect->second.contains(mouse)) {
-                topPanel = *id;
-                break;
-            }
-        }
-
-        // The box drawn last lies on top. While a box is held, no other box can become hot.
-        hot = Id{};
-        for (auto clickable = lastClickable.rbegin(); clickable != lastClickable.rend(); ++clickable) {
-            if (clickable->panel == topPanel && clickable->visible.contains(mouse)) {
-                hot = clickable->id;
-                break;
-            }
-        }
-        if (active != Id{} && hot != active) {
-            hot = Id{};
-        }
-
-        // A press belongs to where it began until the button comes up, to the UI if it began over what the UI drew.
-        const bool overUi = std::ranges::any_of(lastDrawn, [&](const Rect& rect) { return rect.contains(mouse); });
+        // A press on a floating element brings it to the front, and a press anywhere but on the element with the focus
+        // ends the typing into it.
         if (input.pressed(MouseButton::Left)) {
-            pressOnUi = overUi;
-        }
-        const bool pressing = input.held(MouseButton::Left) || input.released(MouseButton::Left);
-        mouseWanted = pressing ? pressOnUi : overUi;
-
-        // A press on a panel brings it to the front, and a press anywhere but on the field with the focus ends the
-        // typing into it.
-        if (input.pressed(MouseButton::Left)) {
-            if (topPanel != Id{}) {
-                std::erase(panelOrder, topPanel);
-                panelOrder.push_back(topPanel);
+            if (const Id layer = pointer->topLayer(); layer != Id{}) {
+                std::erase(memory->layerOrder, layer);
+                memory->layerOrder.push_back(layer);
             }
-            if (hot != focus) {
-                focus = Id{};
+            if (pointer->hot() != memory->focus) {
+                memory->focus = Id{};
             }
         }
 
-        // The root keeps the size of the screen. Its rules only say that it does not fit its children.
-        nodes.clear();
-        framePanels.clear();
-        nodes.push_back({
-            .id = rootId,
-            .rules = {SizeRule::pixels(0.0f), SizeRule::pixels(0.0f)},
-            .size = {static_cast<float>(screen.width), static_cast<float>(screen.height)},
-        });
-        openNodes.assign(1, 0);
+        // The wheel scrolls the element under the mouse by one step per notch, as far as the last frame allows.
+        if (const Id target = pointer->scrollTarget(); target != Id{}) {
+            ScrollState& scroll = memory->scrolls[target];
+            const float scrolled = scroll.offset - input.wheel() * scrollStep * static_cast<float>(scale);
+            scroll.offset = std::clamp(scrolled, 0.0f, scroll.limit);
+        }
+
+        // Only now the tree of this frame starts, with nothing but the root.
+        tree->beginFrame(screen);
     }
 
     void Context::endFrame() {
-        ETUDE_ASSERT(openNodes.size() == 1);
-        nodes.front().end = nodes.size();
-        layout();
+        tree->endFrame();
 
-        // The length of the content decides how far a panel can scroll.
-        for (const FramePanel& panel : framePanels) {
-            const Node& content = nodes[panel.content];
-            PanelState& state = panels.at(panel.id);
-            state.maxScroll = std::max(content.nextChild + 2.0f * content.padding - content.size[1], 0.0f);
-            state.scroll = std::min(state.scroll, state.maxScroll);
+        // Floating elements sit where the memory keeps them, so a drag handle moves them in the same frame. Then the
+        // layout finds where everything goes.
+        for (const std::size_t index : tree->floatingNodes()) {
+            Node& node = tree->node(index);
+            node.offset = memory->layers.at(node.id).position;
+        }
+        layout(tree->nodes(), frameScale);
+
+        // How far the children reach beyond the bottom decides how far an element can scroll.
+        for (const Node& node : tree->nodes()) {
+            if (node.scrolls) {
+                ScrollState& scroll = memory->scrolls[node.id];
+                scroll.limit = std::max(node.contentSize[1] + 2.0f * node.padding[1] - node.size[1], 0.0f);
+                scroll.offset = std::min(scroll.offset, scroll.limit);
+            }
         }
 
-        // Without the left button down, no box is held any more, even if the held box has disappeared.
-        if (!frameInput->held(MouseButton::Left)) {
-            active = Id{};
+        // Enter and Escape end the typing only now, so that the game does not see them while the element has the focus.
+        if (frameInput->pressed(Key::Enter) || frameInput->pressed(Key::Escape)) {
+            memory->focus = Id{};
         }
-        draw();
+
+        // A released element is let go, and the painter turns the frame into the picture that the next frame tests the
+        // mouse against.
+        pointer->endFrame(*frameInput);
+        painter->paint({
+            .nodes = tree->nodes(),
+            .floating = tree->floatingNodes(),
+            .layerOrder = memory->layerOrder,
+            .hot = pointer->hot(),
+            .active = pointer->active(),
+            .scale = frameScale,
+        });
     }
 
     std::span<const Sprite> Context::sprites() const {
-        return drawList;
+        return painter->sprites();
     }
 
     std::span<const DrawBatch> Context::batches() const {
-        return drawBatches;
+        return painter->batches();
     }
 
     bool Context::wantsMouse() const {
-        return mouseWanted;
+        return pointer->wantsMouse();
     }
 
-    Signal Context::box(const BoxSpec& spec) {
-        const Signal signal = beginBox(spec);
-        endBox();
-        return signal;
+    bool Context::wantsKeyboard() const {
+        return memory->focus != Id{};
     }
 
-    Signal Context::beginBox(const BoxSpec& spec) {
-        ETUDE_ASSERT(!spec.clickable || !spec.label.empty());
-        const std::size_t parent = openNodes.back();
-
-        // An empty label leaves the hash of the parent as it is, so the children of a box without a label are named
-        // as if they belonged to its parent.
-        const Id id = makeId(spec.label, nodes[parent].id);
-        const bool keyed = !spec.label.empty();
-
-        Signal signal;
-        if (const auto rect = lastRects.find(id); keyed && rect != lastRects.end()) {
-            signal.rect = rect->second;
-        }
-        if (spec.clickable) {
-            signal.hovered = hot == id;
-            if (signal.hovered && frameInput->pressed(MouseButton::Left)) {
-                active = id;
-                signal.pressed = true;
-            }
-            signal.held = active == id && frameInput->held(MouseButton::Left);
-            signal.clicked = active == id && signal.hovered && frameInput->released(MouseButton::Left);
-        }
-
-        ++nodes[parent].childCount;
-        nodes.push_back({
-            .id = id,
-            .keyed = keyed,
-            .parent = parent,
-            .text = std::string(spec.text.value_or(visibleText(spec.label))),
-            .rules = {spec.width, spec.height},
-            .childAxis = spec.childAxis,
-            .padding = spec.padding * frameScale,
-            .gap = spec.gap * frameScale,
-            .clip = spec.clip,
-            .clickable = spec.clickable,
-            .background = spec.background,
-            .textColor = spec.textColor,
-            .panel = nodes[parent].panel,
-        });
-        openNodes.push_back(nodes.size() - 1);
-        return signal;
+    const Input& Context::input() const {
+        return *frameInput;
     }
 
-    void Context::endBox() {
-        ETUDE_ASSERT(openNodes.size() > 1);
-        nodes[openNodes.back()].end = nodes.size();
-        openNodes.pop_back();
+    std::size_t& Context::textCursor() {
+        return memory->cursor;
     }
 
-    void Context::layout() {
-        for (const Axis axis : {Axis::X, Axis::Y}) {
-            const std::size_t a = indexOf(axis);
+    Interaction Context::openElement(
+        const Modifier& modifier,
+        Arrangement arrangement,
+        std::optional<std::string_view> line
+    ) {
+        // Focusable elements and drag handles take the mouse just like clickable ones.
+        const Modifier::Settings& settings = modifier.settings;
+        const bool clickable = settings.clickable || settings.focusable || settings.dragHandle;
 
-            // Sizes that need nothing but the node itself. A box that fits its children starts with its padding and
-            // the gaps between them. The root at index 0 keeps the size of the screen.
-            for (std::size_t i = 1; i < nodes.size(); ++i) {
-                Node& node = nodes[i];
-                const SizeRule rule = node.rules[a];
-                if (rule.kind == SizeRule::Kind::Pixels) {
-                    node.size[a] = rule.value * frameScale;
-                } else if (rule.kind == SizeRule::Kind::Text) {
-                    const Vec2 textSize = PixelFont::measure(node.text, frameScale);
-                    node.size[a] = (axis == Axis::X ? textSize.x : textSize.y) + 2.0f * rule.value * frameScale;
-                } else if (rule.kind == SizeRule::Kind::Children) {
-                    const std::size_t gaps = node.childAxis == axis && node.childCount > 1 ? node.childCount - 1 : 0;
-                    node.size[a] = 2.0f * node.padding + static_cast<float>(gaps) * node.gap;
-                }
-            }
+        // Elements that keep something between frames need a key, and floating elements only open at the top level.
+        ETUDE_ASSERT(!settings.key.empty() || !(clickable || settings.verticalScroll || settings.floating));
+        ETUDE_ASSERT(!settings.floating || tree->current() == 0);
 
-            // Shares of the space inside the parent, which comes earlier in the list and so has its size already.
-            for (std::size_t i = 1; i < nodes.size(); ++i) {
-                Node& node = nodes[i];
-                if (node.rules[a].kind == SizeRule::Kind::ParentShare) {
-                    const Node& parent = nodes[node.parent];
-                    node.size[a] = (parent.size[a] - 2.0f * parent.padding) * node.rules[a].value;
-                }
-            }
-
-            // Parents that fit their children. Walking backwards meets all children of a node before the node itself.
-            for (std::size_t i = nodes.size() - 1; i > 0; --i) {
-                const Node& child = nodes[i];
-                Node& parent = nodes[child.parent];
-                if (child.floating || parent.rules[a].kind != SizeRule::Kind::Children) {
-                    continue;
-                }
-                parent.size[a] = parent.childAxis == axis
-                                     ? parent.size[a] + child.size[a]
-                                     : std::max(parent.size[a], child.size[a] + 2.0f * parent.padding);
+        // Whatever the modifier leaves unset, the building block decides: a text keeps the padding of a line and is as
+        // large as its text, a layout fits its children. The node holds all lengths in pixels of the screen, so the
+        // scale multiplies fixed sizes, padding and gaps right here.
+        const float scale = static_cast<float>(frameScale);
+        const std::array<float, 2> defaultPadding =
+            line ? std::array{theme::linePadding, theme::linePadding} : std::array{0.0f, 0.0f};
+        const std::array<float, 2> padding = settings.padding.value_or(defaultPadding);
+        std::array<SizeRule, 2> rules;
+        for (std::size_t axis = 0; axis < rules.size(); ++axis) {
+            if (settings.pixels[axis]) {
+                rules[axis] = SizeRule::pixels(*settings.pixels[axis] * scale);
+            } else if (settings.shares[axis]) {
+                rules[axis] = SizeRule::share(*settings.shares[axis]);
+            } else {
+                rules[axis] = line ? SizeRule::text() : SizeRule::children();
             }
         }
 
-        // Every child starts inside the padding of its parent, where its previous sibling ends plus the gap, moved back
-        // by the scrolling. A floating child sits at its offset instead.
-        for (std::size_t i = 1; i < nodes.size(); ++i) {
-            Node& node = nodes[i];
-            Node& parent = nodes[node.parent];
-            if (node.floating) {
-                node.position = {parent.position[0] + node.offset.x, parent.position[1] + node.offset.y};
-                continue;
+        // The tree names the node by its key and opens it, so that the next elements become its children.
+        Node node{
+            .text = std::string(line.value_or(std::string_view{})),
+            .rules = rules,
+            .arrangement = arrangement,
+            .alignment = settings.alignment,
+            .padding = {padding[0] * scale, padding[1] * scale},
+            .gap = settings.spacing * scale,
+            .clip = settings.clip,
+            .clickable = clickable,
+            .scrolls = settings.verticalScroll,
+            .background = settings.background,
+            .textColor = line ? std::optional(theme::textColor) : std::nullopt,
+            .floating = settings.floating.has_value(),
+        };
+        const Id id = tree->open(settings.key, std::move(node));
+        Node& opened = tree->node(tree->current());
+
+        // A floating element starts at its position in its first frame and comes to the front. Later frames keep
+        // whatever the memory says.
+        if (settings.floating) {
+            const auto [layer, created] = memory->layers.try_emplace(id);
+            if (created) {
+                layer->second.position = *settings.floating * scale;
+                memory->layerOrder.push_back(id);
             }
-            const std::size_t along = indexOf(parent.childAxis);
-            const std::size_t across = 1 - along;
-            if (parent.placedChildren > 0) {
-                parent.nextChild += parent.gap;
-            }
-            node.position[along] = parent.position[along] + parent.padding + parent.nextChild - parent.scroll;
-            node.position[across] = parent.position[across] + parent.padding;
-            parent.nextChild += node.size[along];
-            ++parent.placedChildren;
         }
+
+        // A scrolling element moves its children by the offset that the memory keeps.
+        if (settings.verticalScroll) {
+            opened.scroll = memory->scrolls[id].offset;
+        }
+
+        // Only elements that take the mouse ask the pointer, and only elements with a key have a rectangle from the
+        // last frame.
+        Interaction interaction = clickable ? pointer->interact(id, *frameInput) : Interaction{};
+        if (opened.keyed) {
+            interaction.rect = painter->rectOf(id);
+        }
+
+        // A press on a focusable element gives it the focus, with the cursor past the end of any text.
+        if (settings.focusable && interaction.pressed && memory->focus != id) {
+            memory->focus = id;
+            memory->cursor = std::numeric_limits<std::size_t>::max();
+        }
+        interaction.focused = settings.focusable && memory->focus == id;
+
+        // Dragging a handle moves its floating element, which keeps the point where the mouse grabbed it.
+        if (settings.dragHandle && opened.layer != Id{}) {
+            LayerState& layer = memory->layers.at(opened.layer);
+            const Vec2 mouse = frameInput->mousePosition();
+            if (interaction.pressed) {
+                layer.grab = mouse - layer.position;
+            }
+            if (interaction.held) {
+                layer.position = mouse - layer.grab;
+            }
+        }
+        return interaction;
     }
 
-    void Context::draw() {
-        drawList.clear();
-        ranges.clear();
-        lastRects.clear();
-        lastClickable.clear();
-        lastDrawn.clear();
-
-        drawNodes(0, nodes.size(), true);
-        for (const Id id : panelOrder) {
-            if (const auto panel = std::ranges::find(framePanels, id, &FramePanel::id); panel != framePanels.end()) {
-                drawNodes(panel->node, nodes[panel->node].end, false);
-            }
-        }
-
-        drawBatches.clear();
-        for (const BatchRange& range : ranges) {
-            drawBatches.push_back({
-                .viewProjection = projection,
-                .clip = range.clip,
-                .sprites = std::span<const Sprite>(drawList).subspan(range.first, range.count),
-            });
-        }
-    }
-
-    void Context::drawNodes(std::size_t first, std::size_t last, bool skipPanels) {
-        for (std::size_t i = first; i < last;) {
-            if (skipPanels && nodes[i].floating) {
-                i = nodes[i].end;
-                continue;
-            }
-            drawNode(i);
-            ++i;
-        }
-    }
-
-    void Context::drawNode(std::size_t index) {
-        Node& node = nodes[index];
-        const Rect rect = node.rect();
-
-        // The root is its own parent, and it clips nothing.
-        const std::optional<Rect> clip = nodes[node.parent].childClip;
-        node.childClip = node.clip ? std::optional<Rect>(visiblePart(rect, clip)) : clip;
-
-        if (node.keyed) {
-            lastRects[node.id] = rect;
-            if (node.clickable) {
-                lastClickable.push_back({
-                    .id = node.id,
-                    .visible = visiblePart(rect, clip),
-                    .panel = node.panel,
-                });
-            }
-        }
-
-        const std::size_t first = drawList.size();
-        if (node.background) {
-            const bool hovered = node.clickable && node.id == hot;
-            const bool held = node.clickable && node.id == active;
-            drawList.push_back({
-                .position = rect.position,
-                .size = rect.size,
-                .color = highlight(*node.background, hovered, held),
-            });
-        }
-        if (node.textColor) {
-            const Vec2 textSize = PixelFont::measure(node.text, frameScale);
-            const Vec2 textPosition = rect.position + (rect.size - textSize) * 0.5f;
-            font.appendText(drawList, node.text, textPosition, frameScale, *node.textColor);
-        }
-
-        const std::size_t count = drawList.size() - first;
-        if (count == 0) {
-            return;
-        }
-        lastDrawn.push_back(visiblePart(rect, clip));
-
-        // Sprites that follow each other with the same clip rectangle share a batch.
-        if (ranges.empty() || ranges.back().clip != clip) {
-            ranges.push_back({
-                .clip = clip,
-                .first = first,
-            });
-        }
-        ranges.back().count += count;
-    }
-
-    Color Context::highlight(Color color, bool hovered, bool held) {
-        if (held) {
-            return mix(color, black, 0.25f);
-        }
-        if (hovered) {
-            return mix(color, white, 0.15f);
-        }
-        return color;
+    void Context::closeElement() {
+        tree->close();
     }
 }
