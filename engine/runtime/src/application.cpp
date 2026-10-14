@@ -68,14 +68,17 @@ namespace etude {
             steps += dueSteps;
             ++frames;
 
+            // The game describes its UI before anything is drawn, so that the drawing already shows what the UI changed
+            // and no batch of the game can point to sprites that the UI changes afterwards.
+            onUi(uiContext);
+            uiContext.endFrame();
+
             // The sprites and batches start anew in every frame, the sprites of the world first. A Camera in the world
             // points the camera anew in every frame, without one it stays where the game left it.
             renderList.sprites.clear();
             renderList.batches.clear();
             drawScene(sceneWorld, window.clientSize(), lookup, renderList);
             onDraw(renderList);
-            onUi(uiContext);
-            uiContext.endFrame();
             const std::chrono::nanoseconds gameTime = game.elapsed();
 
             // All sprites go through the camera as the first batch, the batches of the game and then those of the UI
@@ -119,9 +122,9 @@ namespace etude {
 
     void Application::onStep(FixedTimestep::Duration) {}
 
-    void Application::onDraw(RenderList&) {}
-
     void Application::onUi(ui::Context&) {}
+
+    void Application::onDraw(RenderList&) {}
 
     void Application::setFramesPerSecond(int framesPerSecond) {
         limiter.setFramesPerSecond(framesPerSecond);

@@ -138,12 +138,6 @@ namespace {
             }
         }
 
-        void onDraw(etude::RenderList& list) override {
-            for (const Bunny& bunny : bunnies) {
-                list.sprites.push_back(bunny.sprite);
-            }
-        }
-
         /// @brief Shows the two panels, which move by their title and come to the front with a click. The calls find
         /// the building blocks and widgets of etude::ui by the type of ui, without naming the namespace.
         void onUi(etude::ui::Context& ui) override {
@@ -191,6 +185,12 @@ namespace {
                     text(ui, event);
                 }
             });
+        }
+
+        void onDraw(etude::RenderList& list) override {
+            for (const Bunny& bunny : bunnies) {
+                list.sprites.push_back(bunny.sprite);
+            }
         }
 
     private:

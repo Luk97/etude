@@ -24,9 +24,10 @@ namespace etude {
     /// simulation step, draws the world of the running scene with the UI on top, shows frames and steps per second in
     /// the title and limits the frame rate.
     ///
-    /// A game derives from Application and overrides onFrame, onStep, onDraw and onUi, the loop itself stays the same.
-    /// In every frame, the UI starts first, so that onFrame can already ask whether the UI wants the mouse or the
-    /// keyboard. The UI scales with the display in whole steps, so that its pixel font stays sharp.
+    /// A game derives from Application and overrides onFrame, onStep, onUi and onDraw, which the loop calls in this
+    /// order, and the loop itself stays the same. In every frame, the UI starts first, so that onFrame can already ask
+    /// whether the UI wants the mouse or the keyboard. The UI scales with the display in whole steps, so that its pixel
+    /// font stays sharp.
     class Application {
     public:
         /// @brief Opens the window. The textures of the world load from the asset folder, which is the working
@@ -48,15 +49,15 @@ namespace etude {
         /// @brief Called once per simulation step, 60 times per second at any frame rate.
         virtual void onStep(FixedTimestep::Duration step);
 
-        /// @brief Called once per frame after the simulation steps, right before the frame is drawn. The list already
-        /// holds the sprites of the world, and the game may add its own on top of them. It may also move the camera,
-        /// unless the world has a Camera, which points the camera anew in every frame. Batches that the game adds cover
-        /// all sprites.
-        virtual void onDraw(RenderList& list);
-
-        /// @brief Called once per frame after onDraw, to describe the UI of the frame with the building blocks and
-        /// widgets of etude.ui. The UI lies in the pixels of the window above the world and the batches of the game.
+        /// @brief Called once per frame after the simulation steps and before onDraw, to describe the UI of the frame
+        /// with the building blocks and widgets of etude.ui, so that the drawing of the frame already shows what the UI
+        /// changed. The UI lies in the pixels of the window above the world and the batches of the game.
         virtual void onUi(ui::Context& ui);
+
+        /// @brief Called once per frame after onUi, right before the frame is drawn. The list already holds the sprites
+        /// of the world, and the game may add its own on top of them. It may also move the camera, unless the world has
+        /// a Camera, which points the camera anew in every frame. Batches that the game adds cover all sprites.
+        virtual void onDraw(RenderList& list);
 
         /// @brief Sets the frames per second.
         void setFramesPerSecond(int framesPerSecond);
