@@ -82,7 +82,12 @@ namespace etude::ui {
         }
 
         // Enter and Escape end the typing only now, so that the game does not see them while the element has the focus.
-        if (frameInput->pressed(Key::Enter) || frameInput->pressed(Key::Escape)) {
+        // An element that this frame did not build loses the focus as well, so that a hidden field gives the keyboard
+        // back to the game.
+        const bool focusBuilt = std::ranges::any_of(tree->nodes(), [&](const Node& node) {
+            return node.keyed && node.id == memory->focus;
+        });
+        if (frameInput->pressed(Key::Enter) || frameInput->pressed(Key::Escape) || !focusBuilt) {
             memory->focus = Id{};
         }
 

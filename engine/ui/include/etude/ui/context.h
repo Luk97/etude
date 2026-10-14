@@ -55,7 +55,8 @@ namespace etude::ui {
 
         /// @brief Lays out the elements of the frame and turns them into the picture that the next frame tests the
         /// mouse against. Enter and Escape take the focus away only here, at the end of the frame, so that the keyboard
-        /// belongs to the UI for the whole frame in which they were pressed and the game does not react to them.
+        /// belongs to the UI for the whole frame in which they were pressed and the game does not react to them. An
+        /// element with the focus that the frame did not build loses it here as well.
         void endFrame();
 
         /// @brief Returns the sprites of the last finished frame in drawing order, in pixels of the screen, without

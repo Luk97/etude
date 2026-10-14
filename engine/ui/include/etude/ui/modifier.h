@@ -75,8 +75,8 @@ namespace etude::ui {
         /// click only counts when the left button goes down and comes up over the element.
         [[nodiscard]] Modifier clickable() const;
 
-        /// @brief Lets a click give the element the focus, so that it takes the keyboard until a click elsewhere, Enter
-        /// or Escape. A focusable element is clickable as well.
+        /// @brief Lets a press on the element give it the focus, so that it takes the keyboard until a press elsewhere,
+        /// Enter, Escape or a frame that no longer builds the element. A focusable element is clickable as well.
         [[nodiscard]] Modifier focusable() const;
 
         /// @brief Lets the wheel scroll the children up and down while the mouse is over the element, as far as they

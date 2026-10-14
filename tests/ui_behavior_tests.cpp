@@ -82,6 +82,36 @@ TEST_CASE("Enter and Escape take the focus away at the end of their frame, so th
     }
 }
 
+TEST_CASE("An element that a frame no longer builds loses the focus, so the keyboard returns to the game") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    bool shown = true;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        bool focused = false;
+        if (shown) {
+            focused = box(ui, Modifier().key("Field").size(50.0f, 20.0f).focusable()).focused;
+        }
+        ui.endFrame();
+        input.beginFrame();
+        return focused;
+    };
+    frame();
+    input.onMouseMove({10.0f, 10.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    frame();
+    input.onMouseButtonUp(MouseButton::Left);
+    CHECK(frame());
+    CHECK(ui.wantsKeyboard());
+
+    // A frame without the field ends its focus, which does not come back when the field shows again.
+    shown = false;
+    frame();
+    CHECK_FALSE(ui.wantsKeyboard());
+    shown = true;
+    CHECK_FALSE(frame());
+}
+
 TEST_CASE("The cursor jumps past the end of any text when an element gains the focus, and stays while it keeps it") {
     FocusFrames frames;
     frames.frame();
