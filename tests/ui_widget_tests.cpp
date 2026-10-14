@@ -206,6 +206,26 @@ TEST_CASE("A slider takes the value where the mouse presses or drags it, within 
     CHECK(value == 2.0f);
 }
 
+TEST_CASE("A slider also takes the value of a press that comes up again within the same frame") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    float value = 0.0f;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        slider(ui, "Tempo", value, 0.0f, 2.0f);
+        ui.endFrame();
+        input.beginFrame();
+    };
+    frame();
+
+    // The bar runs from x 36 to 136, so a tap at x 111 lies three quarters along it.
+    input.onMouseMove({111.0f, 5.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    input.onMouseButtonUp(MouseButton::Left);
+    frame();
+    CHECK(value == 1.5f);
+}
+
 TEST_CASE("A text field takes typed text from a click on it until Enter, Escape or a click elsewhere") {
     TextFieldFrames field{
         .text = "Hase",
