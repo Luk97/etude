@@ -27,7 +27,7 @@ namespace etude::ui {
     /// with the same clip rectangle share a batch.
     class Painter {
     public:
-        /// @brief What paint draws: the nodes after their layout, the indices of the floating ones, their order from
+        /// @brief What paint draws: the nodes after the layout pass, the indices of the floating ones, their order from
         /// back to front, the hot and the active element, and the scale of the text.
         struct Frame {
             std::span<Node> nodes;

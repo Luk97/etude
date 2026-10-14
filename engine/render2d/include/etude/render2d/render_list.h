@@ -8,7 +8,8 @@
 
 namespace etude {
 
-    /// @brief What a frame shows: the camera and the sprites in drawing order, so later sprites cover earlier ones.
+    /// @brief What a frame shows: the camera, the sprites in drawing order, so later sprites cover earlier ones, and
+    /// the batches of the game above them.
     struct RenderList {
         Camera2D camera;
         std::vector<Sprite> sprites;

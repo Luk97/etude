@@ -85,8 +85,8 @@ namespace etude::ui {
                     edit(ui.input(), value, ui.textCursor());
                 }
 
-                // The cursor splits the text in two, with a line of one pixel between the halves while the field has
-                // the focus. The halves leave out the padding of a line, so that they touch the cursor.
+                // The cursor splits the text in two, with a line one pixel wide at scale 1 between the halves while the
+                // field has the focus. The halves leave out the padding of a line, so that they touch the cursor.
                 const std::string_view shown = value;
                 const std::size_t split = self.focused ? ui.textCursor() : shown.size();
                 text(ui, shown.substr(0, split), Modifier().padding(0.0f));

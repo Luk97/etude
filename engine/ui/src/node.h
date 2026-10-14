@@ -21,7 +21,7 @@ namespace etude::ui {
     ///
     /// The nodes of a frame lie in a list in the order of building, so a node points to its parent by index and knows
     /// with end where its subtree stops. The fields come in groups, by who fills them in: the tree names the node and
-    /// links it into the list, the context sets what the modifier said and what its memory keeps, the layout finds
+    /// links it into the list, the context sets what the modifier said and what its memory keeps, the layout pass finds
     /// where the element goes, and the painter which clip rectangle applies to the children.
     struct Node {
         Id id;
@@ -80,7 +80,7 @@ namespace etude::ui {
         /// from the padding.
         float nextChild = 0.0f;
 
-        /// @brief How many children the layout has placed so far, so that a gap only goes between two of them.
+        /// @brief How many children the layout pass has placed so far, so that a gap only goes between two of them.
         std::size_t placedChildren = 0;
 
         /// @brief How large the children are together, without the padding: along the direction in which they follow
@@ -90,7 +90,7 @@ namespace etude::ui {
         /// @brief The clip rectangle that applies to the children, found while drawing.
         std::optional<Rect> childClip;
 
-        /// @brief Returns the rectangle that the layout found, in pixels of the screen.
+        /// @brief Returns the rectangle that the layout pass found, in pixels of the screen.
         Rect rect() const {
             return {
                 .position = {position[0], position[1]},

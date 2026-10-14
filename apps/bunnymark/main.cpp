@@ -32,10 +32,10 @@ namespace {
     /// @brief Pulls the bunnies down, in pixels per second squared.
     constexpr float gravity = 1800.0f;
 
-    /// @brief How many bunnies join per frame while the left mouse button is held, until the test panel says otherwise.
+    /// @brief How many bunnies join per frame while the left mouse button is held, until the panel Hasen changes it.
     constexpr int defaultBunniesPerFrame = 250;
 
-    /// @brief How many bunnies a click on the button of the test panel adds.
+    /// @brief How many bunnies a click on the button of the panel Hasen adds.
     constexpr int bunniesPerClick = 1000;
 
     /// @brief A sprite that moves: gravity pulls it down, and the edges of the window throw it back.
@@ -101,7 +101,7 @@ namespace {
             }
         }
 
-        /// @brief Moves every bunny by one step, stretched by the tempo of the test panel, unless the panel pauses
+        /// @brief Moves every bunny by one step, stretched by the tempo of the panel Hasen, unless its checkbox pauses
         /// them. The side edges reflect a bunny, the top edge stops its rise, and the bottom edge throws it back with
         /// less speed, sometimes with an extra jump.
         void onStep(etude::FixedTimestep::Duration step) override {
@@ -138,7 +138,7 @@ namespace {
             }
         }
 
-        /// @brief Shows the two panels, which move by their title and come to the front with a click. The calls find
+        /// @brief Shows the two panels, which move by their title and come to the front with a press. The calls find
         /// the building blocks and widgets of etude::ui by the type of ui, without naming the namespace.
         void onUi(etude::ui::Context& ui) override {
             // The measurements of the last second, as one line for the first panel.

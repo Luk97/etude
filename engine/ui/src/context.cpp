@@ -67,7 +67,7 @@ namespace etude::ui {
         tree->endFrame();
 
         // Floating elements sit where the memory keeps them, so a drag handle moves them in the same frame. Then the
-        // layout finds where everything goes.
+        // layout pass finds where everything goes.
         for (const std::size_t index : tree->floatingNodes()) {
             Node& node = tree->node(index);
             node.offset = memory->layers.at(node.id).position;

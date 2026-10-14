@@ -226,7 +226,7 @@ TEST_CASE("A slider also takes the value of a press that comes up again within t
     CHECK(value == 1.5f);
 }
 
-TEST_CASE("A text field takes typed text from a click on it until Enter, Escape or a click elsewhere") {
+TEST_CASE("A text field takes typed text from a press on it until Enter, Escape or a press elsewhere") {
     TextFieldFrames field{
         .text = "Hase",
     };
@@ -252,7 +252,7 @@ TEST_CASE("A text field takes typed text from a click on it until Enter, Escape 
     CHECK(field.text == "Hasen");
 }
 
-TEST_CASE("Backspace, Delete, the arrow keys, Home and End edit the text character by character") {
+TEST_CASE("Backspace, Delete, the left and right arrow keys, Home and End edit the text character by character") {
     TextFieldFrames field{
         .text = "aä€",
     };
