@@ -1,6 +1,7 @@
 #pragma once
 
 #include <etude/core/assert.h>
+#include <etude/scene/component_storage.h>
 #include <etude/scene/entity.h>
 #include <etude/scene/sparse_set.h>
 
@@ -17,6 +18,16 @@ namespace etude {
     /// @brief Holds the entities of a scene and their components, with one storage per component type.
     class World {
     public:
+        World() = default;
+
+        /// @brief Copies the entities with all their components. Handles name the same entities in both worlds, and
+        /// from then on each world changes on its own.
+        World(const World& other);
+        World& operator=(const World& other);
+
+        World(World&&) = default;
+        World& operator=(World&&) = default;
+
         /// @brief Creates an entity, reusing the index of a destroyed one with the next generation if there is one.
         /// Stops the program once all 2^20 indices are taken, since more entities would break the handles.
         Entity create();
@@ -25,6 +36,12 @@ namespace etude {
         /// longer count as alive. Destroying an entity that is not alive does nothing, so two systems may both destroy
         /// the same entity.
         void destroy(Entity entity);
+
+        /// @brief Brings the destroyed entity back under its old handle, without components, as undo needs it for
+        /// commands that refer to the entity. Its index has to be free. The index goes back to the generation of the
+        /// handle, so handles of entities that held the index in between must no longer be in use, which undo and redo
+        /// ensure by running strictly in order.
+        void recreate(Entity entity);
 
         /// @brief Returns whether the entity was created by this world and has not been destroyed since.
         bool alive(Entity entity) const;

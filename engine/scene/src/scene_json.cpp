@@ -1,5 +1,6 @@
 #include <etude/scene/scene_json.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <format>
 #include <optional>
@@ -7,16 +8,45 @@
 
 namespace etude {
 
+    Json::Object writeEntity(const World& world, Entity entity, const ComponentRegistry& registry) {
+        Json::Object components;
+        for (const ComponentType& type : registry.types()) {
+            if (std::optional<Json> component = type.write(world, entity)) {
+                components.emplace_back(type.name, std::move(*component));
+            }
+        }
+        return components;
+    }
+
+    std::expected<void, std::string> readEntity(
+        World& world,
+        Entity entity,
+        const Json::Object& components,
+        const ComponentRegistry& registry
+    ) {
+        // Checked first, so that a typing mistake in a name is found before anything changes.
+        for (const auto& member : components) {
+            if (registry.find(member.first) == nullptr) {
+                return std::unexpected(std::format("{} is an unknown component", member.first));
+            }
+        }
+
+        // Each type of the registry reads its component from the JSON, or loses the one it has if the JSON has none.
+        for (const ComponentType& type : registry.types()) {
+            const auto member = std::ranges::find(components, type.name, &Json::Object::value_type::first);
+            if (member == components.end()) {
+                type.remove(world, entity);
+            } else if (const auto read = type.read(world, entity, member->second); !read) {
+                return std::unexpected(read.error());
+            }
+        }
+        return {};
+    }
+
     Json writeScene(const World& world, const ComponentRegistry& registry) {
         Json::Array entities;
         for (const Entity entity : world.entities()) {
-            Json::Object components;
-            for (const ComponentType& type : registry.types()) {
-                if (std::optional<Json> component = type.write(world, entity)) {
-                    components.emplace_back(type.name, std::move(*component));
-                }
-            }
-            entities.emplace_back(std::move(components));
+            entities.emplace_back(writeEntity(world, entity, registry));
         }
 
         Json::Object scene;
@@ -43,15 +73,8 @@ namespace etude {
             if (components == nullptr) {
                 return std::unexpected(std::format("entities[{}] has to be an object", i));
             }
-            const Entity entity = world.create();
-            for (const auto& [name, component] : *components) {
-                const ComponentType* type = registry.find(name);
-                if (type == nullptr) {
-                    return std::unexpected(std::format("entities[{}] has an unknown component {}", i, name));
-                }
-                if (const auto read = type->read(world, entity, component); !read) {
-                    return std::unexpected(std::format("entities[{}].{}", i, read.error()));
-                }
+            if (const auto read = readEntity(world, world.create(), *components, registry); !read) {
+                return std::unexpected(std::format("entities[{}].{}", i, read.error()));
             }
         }
         return world;

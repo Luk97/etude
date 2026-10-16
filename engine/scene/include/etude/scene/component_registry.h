@@ -3,7 +3,9 @@
 #include <etude/core/assert.h>
 #include <etude/json/json.h>
 #include <etude/scene/component_json.h>
+#include <etude/scene/component_type.h>
 #include <etude/scene/entity.h>
+#include <etude/scene/field_visitor.h>
 #include <etude/scene/reflection.h>
 #include <etude/scene/world.h>
 
@@ -17,18 +19,6 @@
 
 namespace etude {
 
-    /// @brief What the registry knows about a component type: its fixed name and how to read and write the component
-    /// of an entity as JSON.
-    struct ComponentType {
-        std::string_view name;
-
-        /// @brief Returns the component of the entity as JSON, or nothing if the entity has none.
-        std::optional<Json> (*write)(const World& world, Entity entity) = nullptr;
-
-        /// @brief Reads the component from JSON and adds it to the entity, replacing one that it already has.
-        std::expected<void, std::string> (*read)(World& world, Entity entity, const Json& json) = nullptr;
-    };
-
     /// @brief Knows the component types that scenes can hold by their fixed names, so that files do not depend on the
     /// numbers that the world gives the types.
     class ComponentRegistry {
@@ -40,8 +30,11 @@ namespace etude {
             ETUDE_ASSERT(find(Component::typeName) == nullptr);
             componentTypes.push_back({
                 .name = Component::typeName,
+                .has = &has<Component>,
                 .write = &write<Component>,
                 .read = &read<Component>,
+                .remove = &remove<Component>,
+                .inspect = &inspect<Component>,
             });
         }
 
@@ -55,6 +48,11 @@ namespace etude {
         }
 
     private:
+        template <Reflected Component>
+        static bool has(const World& world, Entity entity) {
+            return world.has<Component>(entity);
+        }
+
         template <Reflected Component>
         static std::optional<Json> write(const World& world, Entity entity) {
             const Component* component = world.tryGet<Component>(entity);
@@ -71,9 +69,19 @@ namespace etude {
             });
         }
 
+        template <Reflected Component>
+        static void remove(World& world, Entity entity) {
+            world.remove<Component>(entity);
+        }
+
+        template <Reflected Component>
+        static void inspect(World& world, Entity entity, FieldVisitor& visitor) {
+            visitFields(world.get<Component>(entity), visitor);
+        }
+
         std::vector<ComponentType> componentTypes;
     };
 
-    /// @brief Adds the components that come with the engine: Name, Transform2D, SpriteRenderer and Camera.
+    /// @brief Adds the components that come with the engine: Name, Transform2D, SpriteRenderer, Camera and Velocity.
     void addBuiltinComponents(ComponentRegistry& registry);
 }

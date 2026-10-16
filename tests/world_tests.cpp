@@ -135,6 +135,60 @@ TEST_CASE("World lists the entities that are alive in the order of their indices
     CHECK(world.entities() == std::vector{first, reused, third});
 }
 
+TEST_CASE("World brings a destroyed entity back under its old handle, without components") {
+    World world;
+    const Entity entity = world.create();
+    world.add(entity, Label{"Hase"});
+    world.destroy(entity);
+
+    world.recreate(entity);
+    CHECK(world.alive(entity));
+    CHECK_FALSE(world.has<Label>(entity));
+    CHECK(world.size() == 1);
+
+    // The index is taken again, so a new entity gets another one.
+    CHECK(etude::indexOf(world.create()) != etude::indexOf(entity));
+}
+
+TEST_CASE("World kills the handle of an entity that held the index in between when it brings the old one back") {
+    World world;
+    const Entity old = world.create();
+    world.destroy(old);
+    const Entity between = world.create();
+    world.destroy(between);
+
+    // Undo runs backwards: the entity created later is gone again before the destroyed one comes back.
+    world.recreate(old);
+    CHECK(world.alive(old));
+    CHECK_FALSE(world.alive(between));
+    CHECK(world.entities() == std::vector{old});
+}
+
+TEST_CASE("World copies its entities with their components, after which each world changes on its own") {
+    World original;
+    const Entity first = original.create();
+    const Entity second = original.create();
+    original.add(first, Label{"Hase"});
+    original.add(second, Position{1.0f, 2.0f});
+    original.destroy(original.create());
+
+    // The copy takes over the free index as well, so its next entity gets index 2 as it would in the original.
+    World copy = original;
+    const Entity added = copy.create();
+    CHECK(etude::indexOf(added) == 2);
+    copy.get<Label>(first).text = "Fuchs";
+    copy.destroy(second);
+
+    CHECK(original.get<Label>(first).text == "Hase");
+    CHECK(original.get<Position>(second).y == 2.0f);
+    CHECK_FALSE(original.alive(added));
+
+    original = copy;
+    CHECK(original.get<Label>(first).text == "Fuchs");
+    CHECK_FALSE(original.alive(second));
+    CHECK(original.alive(added));
+}
+
 TEST_CASE("World adds components and finds them again") {
     World world;
     const Entity entity = world.create();

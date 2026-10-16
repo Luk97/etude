@@ -1,6 +1,8 @@
 #include <etude/runtime/render_system.h>
 
-#include <etude/scene/components.h>
+#include <etude/scene/components/camera.h>
+#include <etude/scene/components/sprite_renderer.h>
+#include <etude/scene/components/transform2d.h>
 
 #include <algorithm>
 #include <cstdint>

@@ -1,28 +1,21 @@
 #pragma once
 
 #include <etude/core/assert.h>
+#include <etude/scene/component_storage.h>
 #include <etude/scene/entity.h>
 
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <utility>
 #include <vector>
 
 namespace etude {
 
-    /// @brief What the world needs from the storage of a component type without knowing the type: removing the
-    /// component of an entity that it destroys.
-    class ComponentStorage {
-    public:
-        virtual ~ComponentStorage() = default;
-
-        /// @brief Removes the component of the entity, if it has one.
-        virtual void remove(Entity entity) = 0;
-    };
-
     /// @brief Stores the components of one type without gaps, so that systems run through them in one go. A sparse
     /// array maps the index of an entity to the place of its component. Removing a component moves the last one into
-    /// the gap, which keeps them packed but changes their order.
+    /// the gap, which keeps them packed but changes their order. Components have to be copyable, so that the world
+    /// can be copied.
     template <typename Component>
     class SparseSet final : public ComponentStorage {
     public:
@@ -59,6 +52,10 @@ namespace etude {
             dense.pop_back();
             values.pop_back();
             sparse[indexOf(entity)] = absent;
+        }
+
+        std::unique_ptr<ComponentStorage> clone() const override {
+            return std::make_unique<SparseSet>(*this);
         }
 
         /// @brief Returns whether the entity has a component here. The whole handle has to match, so an old handle

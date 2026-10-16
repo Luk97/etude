@@ -3,11 +3,17 @@
 #include <etude/json/json.h>
 #include <etude/scene/component_json.h>
 #include <etude/scene/component_registry.h>
-#include <etude/scene/components.h>
+#include <etude/scene/components/camera.h>
+#include <etude/scene/components/name.h>
+#include <etude/scene/components/sprite_renderer.h>
+#include <etude/scene/components/transform2d.h>
+#include <etude/scene/components/velocity.h>
+#include <etude/scene/field_visitor.h>
 #include <etude/scene/reflection.h>
 #include <etude/scene/world.h>
 
 #include <array>
+#include <format>
 #include <limits>
 #include <optional>
 #include <string>
@@ -40,6 +46,32 @@ namespace {
             etude::Field{"value", &Bare::value},
             etude::Field{"count", &Bare::count},
         };
+    };
+
+    // Writes down each field it sees and doubles its value, so that a test can check both the order and the access.
+    class Doubler final : public etude::FieldVisitor {
+    public:
+        void visit(std::string_view name, float& value) override {
+            seen.push_back(std::format("{} {}", name, value));
+            value *= 2.0f;
+        }
+
+        void visit(std::string_view name, int& value) override {
+            seen.push_back(std::format("{} {}", name, value));
+            value *= 2;
+        }
+
+        void visit(std::string_view name, std::string& value) override {
+            seen.push_back(std::format("{} {}", name, value));
+            value += value;
+        }
+
+        void visit(std::string_view name, etude::Vec2& value) override {
+            seen.push_back(std::format("{} {} {}", name, value.x, value.y));
+            value = value * 2.0f;
+        }
+
+        std::vector<std::string> seen;
     };
 }
 
@@ -143,7 +175,7 @@ TEST_CASE("addBuiltinComponents adds the components of the engine in a fixed ord
     for (const etude::ComponentType& type : registry.types()) {
         names.push_back(type.name);
     }
-    CHECK(names == std::vector<std::string_view>{"Name", "Transform2D", "SpriteRenderer", "Camera"});
+    CHECK(names == std::vector<std::string_view>{"Name", "Transform2D", "SpriteRenderer", "Camera", "Velocity"});
     CHECK(registry.find("Camera") == &registry.types()[3]);
     CHECK(registry.find("Camera2D") == nullptr);
 }
@@ -173,4 +205,50 @@ TEST_CASE("ComponentRegistry adds nothing to the entity when reading fails") {
     const etude::Entity entity = world.create();
     CHECK_FALSE(registry.find("Camera")->read(world, entity, json(R"({"zoom": "near"})")));
     CHECK_FALSE(world.has<etude::Camera>(entity));
+}
+
+TEST_CASE("visitFields hands each field to the visitor in the order of the field list") {
+    etude::Transform2D transform{
+        .position = {1.0f, -2.0f},
+        .rotation = 45.0f,
+    };
+    etude::SpriteRenderer sprite{"bunny.qoi", 3};
+    Doubler doubler;
+    etude::visitFields(transform, doubler);
+    etude::visitFields(sprite, doubler);
+
+    CHECK(
+        doubler.seen ==
+        std::vector<std::string>{"position 1 -2", "rotation 45", "scale 1 1", "texture bunny.qoi", "layer 3"}
+    );
+    CHECK(transform.position == etude::Vec2{2.0f, -4.0f});
+    CHECK(transform.rotation == 90.0f);
+    CHECK(sprite.texture == "bunny.qoibunny.qoi");
+    CHECK(sprite.layer == 6);
+}
+
+TEST_CASE("ComponentRegistry tells, changes and removes the component of an entity by the name of its type") {
+    etude::ComponentRegistry registry;
+    etude::addBuiltinComponents(registry);
+    const etude::ComponentType& velocityType = *registry.find("Velocity");
+
+    etude::World world;
+    const etude::Entity ball = world.create();
+    const etude::Velocity velocity{
+        .linear = {300.0f, -100.0f},
+        .angular = 90.0f,
+    };
+    world.add(ball, velocity);
+    world.add(ball, etude::Name{"Ball"});
+    CHECK(velocityType.has(world, ball));
+    CHECK_FALSE(registry.find("Camera")->has(world, ball));
+
+    Doubler doubler;
+    velocityType.inspect(world, ball, doubler);
+    CHECK(doubler.seen == std::vector<std::string>{"linear 300 -100", "angular 90"});
+    CHECK(world.get<etude::Velocity>(ball).angular == 180.0f);
+
+    velocityType.remove(world, ball);
+    CHECK_FALSE(world.has<etude::Velocity>(ball));
+    CHECK(world.has<etude::Name>(ball));
 }

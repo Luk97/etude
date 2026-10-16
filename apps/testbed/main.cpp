@@ -1,6 +1,7 @@
 #include <etude/core/log.h>
 #include <etude/runtime/application.h>
-#include <etude/scene/components.h>
+#include <etude/scene/components/sprite_renderer.h>
+#include <etude/scene/components/transform2d.h>
 #include <etude/scene/scene_file.h>
 
 #include <array>

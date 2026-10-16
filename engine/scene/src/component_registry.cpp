@@ -1,6 +1,10 @@
 #include <etude/scene/component_registry.h>
 
-#include <etude/scene/components.h>
+#include <etude/scene/components/camera.h>
+#include <etude/scene/components/name.h>
+#include <etude/scene/components/sprite_renderer.h>
+#include <etude/scene/components/transform2d.h>
+#include <etude/scene/components/velocity.h>
 
 namespace etude {
 
@@ -18,5 +22,6 @@ namespace etude {
         registry.add<Transform2D>();
         registry.add<SpriteRenderer>();
         registry.add<Camera>();
+        registry.add<Velocity>();
     }
 }

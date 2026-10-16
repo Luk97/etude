@@ -5,7 +5,10 @@
 #include <etude/json/json.h>
 #include <etude/math/vec2.h>
 #include <etude/scene/component_registry.h>
-#include <etude/scene/components.h>
+#include <etude/scene/components/camera.h>
+#include <etude/scene/components/name.h>
+#include <etude/scene/components/sprite_renderer.h>
+#include <etude/scene/components/transform2d.h>
 #include <etude/scene/reflection.h>
 #include <etude/scene/scene_file.h>
 #include <etude/scene/scene_json.h>
@@ -37,8 +40,8 @@ namespace {
         };
     };
 
-    struct Velocity {
-        etude::Vec2 value;
+    struct Waypoint {
+        etude::Vec2 position;
     };
 
     etude::ComponentRegistry makeRegistry() {
@@ -85,7 +88,7 @@ TEST_CASE("writeScene writes the version and each entity with its components in 
 
 TEST_CASE("writeScene leaves out components whose type the registry does not know") {
     World world;
-    world.add(world.create(), Velocity{});
+    world.add(world.create(), Waypoint{});
     const Json expected = Json::Object{
         {"version", 1},
         {"entities", Json::Array{Json::Object{}}},
@@ -129,6 +132,45 @@ TEST_CASE("A new component needs nothing but a type name and a field list to be 
     CHECK(health.regeneration == 0.25f);
 }
 
+TEST_CASE("readEntity gives an entity exactly the components that writeEntity wrote for another one") {
+    const etude::ComponentRegistry registry = makeRegistry();
+    World world;
+    const Entity source = world.create();
+    world.add(source, etude::Name{"Ball"});
+    world.add(source, Health{42, 0.25f});
+    const Entity target = world.create();
+    world.add(target, etude::Camera{2.0f});
+    world.add(target, Waypoint{});
+
+    const Json::Object components = etude::writeEntity(world, source, registry);
+    const Json::Object expected{
+        {"Name", Json::Object{{"value", "Ball"}}},
+        {"Health", Json::Object{{"points", 42}, {"regeneration", 0.25}}},
+    };
+    CHECK(components == expected);
+
+    // The camera goes, because the registry knows it and the JSON leaves it out. The waypoint stays, because the
+    // registry does not know it.
+    REQUIRE(etude::readEntity(world, target, components, registry));
+    CHECK(etude::writeEntity(world, target, registry) == components);
+    CHECK_FALSE(world.has<etude::Camera>(target));
+    CHECK(world.has<Waypoint>(target));
+}
+
+TEST_CASE("readEntity changes nothing when the JSON names an unknown component") {
+    const etude::ComponentRegistry registry = makeRegistry();
+    World world;
+    const Entity entity = world.create();
+    world.add(entity, etude::Camera{2.0f});
+
+    const Json::Object components{{"Name", Json::Object{{"value", "Ball"}}}, {"Speed", Json::Object{}}};
+    const auto read = etude::readEntity(world, entity, components, registry);
+    REQUIRE_FALSE(read);
+    CHECK(read.error() == "Speed is an unknown component");
+    CHECK(world.has<etude::Camera>(entity));
+    CHECK_FALSE(world.has<etude::Name>(entity));
+}
+
 TEST_CASE("readScene refuses a scene without the right version") {
     CHECK(errorOf(R"({"entities": []})") == "the scene has to have version 1");
     CHECK(errorOf(R"({"version": 2, "entities": []})") == "the scene has to have version 1");
@@ -141,7 +183,7 @@ TEST_CASE("readScene refuses a scene without an array of entities") {
 
 TEST_CASE("readScene names the place in the scene that it cannot read") {
     CHECK(errorOf(R"({"version": 1, "entities": [{}, 3]})") == "entities[1] has to be an object");
-    CHECK(errorOf(R"({"version": 1, "entities": [{"Speed": {}}]})") == "entities[0] has an unknown component Speed");
+    CHECK(errorOf(R"({"version": 1, "entities": [{"Speed": {}}]})") == "entities[0].Speed is an unknown component");
     CHECK(
         errorOf(R"({"version": 1, "entities": [{}, {"Camera": {"zoom": "far"}}]})") ==
         "entities[1].Camera.zoom: expected a number in the range of a float"
