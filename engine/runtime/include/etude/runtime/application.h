@@ -2,6 +2,7 @@
 
 #include <etude/core/fixed_timestep.h>
 #include <etude/math/color.h>
+#include <etude/math/rect.h>
 #include <etude/platform/frame_limiter.h>
 #include <etude/platform/input.h>
 #include <etude/platform/window.h>
@@ -15,14 +16,15 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
 namespace etude {
 
     /// @brief Runs the game loop: handles the window messages, calls the game once per frame and once per fixed
-    /// simulation step, draws the world of the running scene with the UI on top, shows frames and steps per second in
-    /// the title and limits the frame rate.
+    /// simulation step, moves the entities with a Velocity in each step, draws the world of the running scene with the
+    /// UI on top, shows frames and steps per second in the title and limits the frame rate.
     ///
     /// A game derives from Application and overrides onFrame, onStep, onUi and onDraw, which the loop calls in this
     /// order, and the loop itself stays the same. In every frame, the UI starts first, so that onFrame can already ask
@@ -46,7 +48,8 @@ namespace etude {
         /// reaction to a single key press belongs here. A frame can contain several simulation steps or none.
         virtual void onFrame(const Input& input);
 
-        /// @brief Called once per simulation step, 60 times per second at any frame rate.
+        /// @brief Called once per simulation step, 60 times per second at any frame rate, while the simulation runs.
+        /// The entities with a Velocity move right after it.
         virtual void onStep(FixedTimestep::Duration step);
 
         /// @brief Called once per frame after the simulation steps and before onDraw, to describe the UI of the frame
@@ -64,6 +67,23 @@ namespace etude {
 
         /// @brief Sets the color that fills the window at the start of every frame.
         void setClearColor(Color color);
+
+        /// @brief Sets the title of the window, behind which the loop shows frames and steps per second.
+        void setTitle(std::string_view text);
+
+        /// @brief Sets the part of the window in which the world appears, in pixels from its top left corner, such as
+        /// the scene panel of the editor. The camera fills it, and the world ends at its edges. Without one, the world
+        /// fills the whole window.
+        void setViewport(std::optional<Rect> area);
+
+        /// @brief Switches the simulation on or off. While it is off, the loop skips the simulation steps, so that
+        /// neither onStep nor the systems of the engine run, and the time that passes meanwhile does not pile up into
+        /// steps. Games leave it on, the editor turns it on only in Play.
+        void setSimulating(bool on);
+
+        /// @brief Loads the textures of the world from another folder from now on, such as the folder of a project that
+        /// the editor opens.
+        void setAssetFolder(std::filesystem::path folder);
 
         /// @brief Copies the image to the GPU and returns the id under which it can be drawn.
         TextureId createTexture(const Image& image);
@@ -85,6 +105,10 @@ namespace etude {
         const FrameStats& frameStats() const;
 
     private:
+        /// @brief Shows the title in the window, with the frames and steps per second once the first second is
+        /// measured.
+        void showTitle();
+
         std::string title;
         Window window;
         std::unique_ptr<Renderer> renderer;
@@ -93,6 +117,8 @@ namespace etude {
         ComponentRegistry componentTypes;
         World sceneWorld;
         RenderList renderList;
+        std::optional<Rect> viewport;
+        bool simulating = true;
         FixedTimestep timestep;
         FrameLimiter limiter;
         FrameStats stats;

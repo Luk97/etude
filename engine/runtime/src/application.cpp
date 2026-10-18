@@ -4,6 +4,7 @@
 #include <etude/core/log.h>
 #include <etude/render2d/pixel_font.h>
 #include <etude/rendering/vulkan/vulkan_renderer.h>
+#include <etude/runtime/motion_system.h>
 #include <etude/runtime/render_system.h>
 
 #include <algorithm>
@@ -60,12 +61,17 @@ namespace etude {
             uiContext.beginFrame(input, window.clientSize(), uiScale(window.dpiScale()));
             onFrame(input);
 
-            // The fixed timestep decides how many simulation steps this frame catches up on, none or several.
+            // The fixed timestep decides how many simulation steps this frame catches up on, none or several. While the
+            // simulation is off, the time passes all the same, so that no steps pile up for when it starts again.
             const int dueSteps = timestep.advance(frameClock.restart());
-            for (int i = 0; i < dueSteps; ++i) {
-                onStep(timestep.step());
+            if (simulating) {
+                for (int i = 0; i < dueSteps; ++i) {
+                    onStep(timestep.step());
+                    moveScene(sceneWorld, timestep.step());
+                }
+                steps += dueSteps;
             }
-            steps += dueSteps;
+
             ++frames;
 
             // The game describes its UI before anything is drawn, so that the drawing already shows what the UI changed
@@ -73,18 +79,25 @@ namespace etude {
             onUi(uiContext);
             uiContext.endFrame();
 
-            // The sprites and batches start anew in every frame, the sprites of the world first. A Camera in the world
-            // points the camera anew in every frame, without one it stays where the game left it.
+            // The sprites and batches start anew in every frame, the sprites of the world first, which fill the
+            // viewport or the whole window. A Camera in the world points the camera anew in every frame, without one it
+            // stays where the game left it.
+            const Size screen = window.clientSize();
+            const Rect wholeWindow{
+                .size = {static_cast<float>(screen.width), static_cast<float>(screen.height)},
+            };
+            const Rect area = viewport.value_or(wholeWindow);
             renderList.sprites.clear();
             renderList.batches.clear();
-            drawScene(sceneWorld, window.clientSize(), lookup, renderList);
+            drawScene(sceneWorld, area.size, lookup, renderList);
             onDraw(renderList);
             const std::chrono::nanoseconds gameTime = game.elapsed();
 
-            // All sprites go through the camera as the first batch, the batches of the game and then those of the UI
-            // cover them.
+            // All sprites go through the camera as the first batch, cut off at the edges of a viewport, and the batches
+            // of the game and then those of the UI cover them.
             const DrawBatch worldBatch{
-                .viewProjection = renderList.camera.viewProjection(window.clientSize()),
+                .viewProjection = renderList.camera.viewProjection(screen, area),
+                .clip = viewport,
                 .sprites = renderList.sprites,
             };
             renderList.batches.insert(renderList.batches.begin(), worldBatch);
@@ -103,9 +116,7 @@ namespace etude {
                     .cpuMilliseconds = millisecondsPerFrame(cpuTime, frames),
                     .gpuMilliseconds = millisecondsPerFrame(gpuTime, frames),
                 };
-                window.setTitle(
-                    std::format("{} | {:.0f} fps | {:.0f} steps/s", title, stats.framesPerSecond, stats.stepsPerSecond)
-                );
+                showTitle();
                 logInfo("CPU {:.2f} ms, GPU {:.2f} ms per frame", stats.cpuMilliseconds, stats.gpuMilliseconds);
                 frames = 0;
                 steps = 0;
@@ -134,6 +145,23 @@ namespace etude {
         renderer->setClearColor(color);
     }
 
+    void Application::setTitle(std::string_view text) {
+        title = text;
+        showTitle();
+    }
+
+    void Application::setViewport(std::optional<Rect> area) {
+        viewport = area;
+    }
+
+    void Application::setSimulating(bool on) {
+        simulating = on;
+    }
+
+    void Application::setAssetFolder(std::filesystem::path folder) {
+        textureCache.setAssetFolder(std::move(folder));
+    }
+
     TextureId Application::createTexture(const Image& image) {
         return renderer->createTexture(image);
     }
@@ -156,5 +184,16 @@ namespace etude {
 
     const FrameStats& Application::frameStats() const {
         return stats;
+    }
+
+    void Application::showTitle() {
+        // Before the first full second, there are no numbers yet.
+        if (stats.framesPerSecond == 0.0) {
+            window.setTitle(title);
+            return;
+        }
+        window.setTitle(
+            std::format("{} | {:.0f} fps | {:.0f} steps/s", title, stats.framesPerSecond, stats.stepsPerSecond)
+        );
     }
 }

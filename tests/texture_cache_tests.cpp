@@ -68,3 +68,25 @@ TEST_CASE("TextureCache remembers a texture that it cannot load instead of tryin
     CHECK_FALSE(later);
     CHECK(renderer.created == 0);
 }
+
+TEST_CASE("TextureCache loads from another folder after a change and forgets what it loaded before") {
+    const std::filesystem::path first = std::filesystem::temp_directory_path() / "etude_first_assets";
+    const std::filesystem::path second = std::filesystem::temp_directory_path() / "etude_second_assets";
+    std::filesystem::create_directories(first);
+    std::filesystem::create_directories(second);
+    writeImage(first / "red.qoi");
+    writeImage(second / "red.qoi");
+
+    CountingRenderer renderer;
+    etude::TextureCache cache(renderer, first);
+    const auto before = cache.get("red.qoi");
+    cache.setAssetFolder(second);
+    const auto after = cache.get("red.qoi");
+    std::filesystem::remove_all(first);
+    std::filesystem::remove_all(second);
+
+    REQUIRE(before);
+    REQUIRE(after);
+    CHECK(before->id != after->id);
+    CHECK(renderer.created == 2);
+}

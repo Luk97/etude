@@ -27,4 +27,9 @@ namespace etude {
         textures.emplace(path, texture);
         return texture;
     }
+
+    void TextureCache::setAssetFolder(std::filesystem::path folder) {
+        assetFolder = std::move(folder);
+        textures.clear();
+    }
 }

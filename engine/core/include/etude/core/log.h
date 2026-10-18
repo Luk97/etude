@@ -1,8 +1,7 @@
 #pragma once
 
-#include <cstdio>
 #include <format>
-#include <print>
+#include <functional>
 #include <string_view>
 #include <utility>
 
@@ -31,11 +30,24 @@ namespace etude {
         std::unreachable();
     }
 
-    /// @brief Writes a message with its level to stderr, which is unbuffered, so the line appears even
-    /// if the program crashes right after. The format string is checked at compile time, like with std::format.
+    /// @brief Receives each log message with its level, such as the console of the editor, which shows the messages in
+    /// its window. The message only lives during the call, so a listener that keeps it has to copy it.
+    using LogListener = std::function<void(LogLevel level, std::string_view message)>;
+
+    /// @brief Hands every log message from now on to the listener as well, or to none if the function is empty. There
+    /// is one listener at a time, so a new one replaces the last. The listener must not log itself, since that message
+    /// would come back to it.
+    void setLogListener(LogListener listener);
+
+    /// @brief Writes the message with its level to stderr, which is unbuffered, so the line appears even if the
+    /// program crashes right after, and then hands it to the listener.
+    void writeLog(LogLevel level, std::string_view message);
+
+    /// @brief Formats a message and logs it with its level. The format string is checked at compile time, like with
+    /// std::format.
     template <typename... Args>
     void logMessage(LogLevel level, std::format_string<Args...> format, Args&&... args) {
-        std::println(stderr, "[{}] {}", toString(level), std::format(format, std::forward<Args>(args)...));
+        writeLog(level, std::format(format, std::forward<Args>(args)...));
     }
 
     /// @brief Logs an informational message about the normal course of the program.

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <etude/math/size.h>
 #include <etude/math/vec2.h>
 #include <etude/render2d/render_list.h>
 #include <etude/rendering/texture_id.h>
+#include <etude/scene/entity.h>
 #include <etude/scene/world.h>
 
 #include <functional>
@@ -25,7 +25,13 @@ namespace etude {
     /// @brief Adds a sprite to the list for each entity with a Transform2D and a SpriteRenderer, ordered by layer and
     /// within a layer by entity index, so that later entities of a scene file cover earlier ones. Entities whose
     /// texture cannot be loaded stay invisible. Of the entities with a Camera and a Transform2D, the one with the
-    /// lowest index points the camera of the list and ignores the rotation and scale of its transform. A Camera
-    /// without a positive zoom is skipped, since it would divide by zero or mirror the picture.
-    void drawScene(const World& world, Size window, const TextureLookup& textures, RenderList& list);
+    /// lowest index points the camera of the list into the middle of a viewport of the given size in pixels and ignores
+    /// the rotation and scale of its transform. A Camera without a positive zoom is skipped, since it would divide by
+    /// zero or mirror the picture.
+    void drawScene(const World& world, Vec2 viewport, const TextureLookup& textures, RenderList& list);
+
+    /// @brief Returns the entity whose sprite covers the point in world coordinates and lies on top there, as drawScene
+    /// draws it: the highest layer wins, and within a layer the highest index. The whole turned rectangle of a sprite
+    /// counts, also where its texture is transparent. Entities whose texture cannot be loaded cover nothing.
+    std::optional<Entity> entityAt(const World& world, Vec2 point, const TextureLookup& textures);
 }

@@ -20,6 +20,10 @@ namespace etude {
         /// from then on, so that it does not flood the log in every frame.
         std::optional<LoadedTexture> get(const std::string& path);
 
+        /// @brief Loads the textures from another folder from now on, such as the folder of a project that the editor
+        /// opens, and forgets those loaded so far. They stay on the GPU, since the renderer cannot free textures yet.
+        void setAssetFolder(std::filesystem::path folder);
+
     private:
         Renderer& renderer;
         std::filesystem::path assetFolder;
