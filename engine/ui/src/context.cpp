@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <limits>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -159,10 +160,15 @@ namespace etude::ui {
         const std::array<float, 2> defaultPadding =
             line ? std::array{theme::linePadding, theme::linePadding} : std::array{0.0f, 0.0f};
         const std::array<float, 2> padding = settings.padding.value_or(defaultPadding);
+
+        // A weight only counts along the direction in which the layout around lines up its children.
+        const std::optional<std::size_t> along = mainAxis(tree->node(tree->current()).arrangement);
         std::array<SizeRule, 2> rules;
         for (std::size_t axis = 0; axis < rules.size(); ++axis) {
             if (settings.pixels[axis]) {
                 rules[axis] = SizeRule::pixels(*settings.pixels[axis] * scale);
+            } else if (settings.weight && along == axis) {
+                rules[axis] = SizeRule::weight(*settings.weight);
             } else if (settings.shares[axis]) {
                 rules[axis] = SizeRule::share(*settings.shares[axis]);
             } else {
@@ -182,7 +188,7 @@ namespace etude::ui {
             .clickable = clickable,
             .scrolls = settings.verticalScroll,
             .background = settings.background,
-            .textColor = line ? std::optional(theme::textColor) : std::nullopt,
+            .textColor = line ? std::optional(settings.textColor.value_or(theme::textColor)) : std::nullopt,
             .floating = settings.floating.has_value(),
         };
         const Id id = tree->open(settings.key, std::move(node));

@@ -51,6 +51,14 @@ namespace etude::ui {
         /// around it, like fillMaxWidth and fillMaxHeight.
         [[nodiscard]] Modifier fillMaxSize(float share = 1.0f) const;
 
+        /// @brief Gives the element a part of the space that its siblings leave free along the direction of the row or
+        /// the column around it, in proportion to the weights of all siblings that have one. Siblings with a fixed
+        /// length, a share or a text count with their length, while siblings that fit their children only count with
+        /// their padding and spacing, because their length is not known yet. Across the direction and inside a box, the
+        /// weight changes nothing. A fixed length along the direction wins over the weight, and the weight wins over a
+        /// share.
+        [[nodiscard]] Modifier weight(float part = 1.0f) const;
+
         /// @brief Keeps the children or the text this far from the edges of the element, the same on all sides.
         [[nodiscard]] Modifier padding(float pixels) const;
 
@@ -67,6 +75,9 @@ namespace etude::ui {
         /// @brief Fills the element with this color. A clickable element turns lighter under the mouse and darker while
         /// it is held.
         [[nodiscard]] Modifier background(Color color) const;
+
+        /// @brief Shows the text of the element in this color instead of the text color of the theme.
+        [[nodiscard]] Modifier textColor(Color color) const;
 
         /// @brief Cuts off whatever the children draw outside the element, and the mouse misses what is cut off.
         [[nodiscard]] Modifier clip() const;
@@ -110,12 +121,16 @@ namespace etude::ui {
             /// @brief Shares of the element around.
             std::array<std::optional<float>, 2> shares;
 
+            /// @brief The part of the free space along the direction of the layout around.
+            std::optional<float> weight;
+
             /// @brief The padding, which keeps the default of the building block if unset.
             std::optional<std::array<float, 2>> padding;
 
             float spacing = 0.0f;
             Alignment alignment = Alignment::Start;
             std::optional<Color> background;
+            std::optional<Color> textColor;
             bool clip = false;
             bool clickable = false;
             bool focusable = false;

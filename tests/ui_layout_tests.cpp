@@ -7,6 +7,7 @@
 #include <etude/ui/modifier.h>
 #include <etude/ui/row.h>
 #include <etude/ui/text.h>
+#include <etude/ui/theme.h>
 
 #include <utility>
 
@@ -283,4 +284,65 @@ TEST_CASE("A fixed length wins over a share, whichever comes first, and a box ke
     CHECK(first.rect.size.x == 30.0f);
     CHECK(second.rect.size.x == 30.0f);
     CHECK(second.rect.position == Vec2{0.0f, 0.0f});
+}
+
+TEST_CASE("Weights share out what the other children of a row leave free, in proportion to each other") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Interaction small;
+    Interaction large;
+    Interaction share;
+    for (int frame = 0; frame < 2; ++frame) {
+        ui.beginFrame(input, screen, 1);
+        row(ui, Modifier().key("Row").size(400.0f, 50.0f).spacedBy(10.0f), [&] {
+            box(ui, Modifier().key("Fixed").size(70.0f, 10.0f));
+            small = box(ui, Modifier().key("Small").weight(1.0f).height(10.0f));
+            large = box(ui, Modifier().key("Large").weight(3.0f).height(10.0f));
+            share = box(ui, Modifier().key("Share").fillMaxWidth(0.25f).height(10.0f));
+        });
+        ui.endFrame();
+    }
+
+    // The fixed box, the share of 100 pixels and three gaps of 10 leave 200 pixels, of which the weights take a quarter
+    // and three quarters.
+    CHECK(small.rect.size.x == 50.0f);
+    CHECK(large.rect.size.x == 150.0f);
+    CHECK(large.rect.position.x == 140.0f);
+    CHECK(share.rect.position.x == 300.0f);
+}
+
+TEST_CASE("A weight works along the direction of a column, changes nothing across it, and loses to a fixed length") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    Interaction weighted;
+    Interaction fixed;
+    for (int frame = 0; frame < 2; ++frame) {
+        ui.beginFrame(input, screen, 1);
+        column(ui, Modifier().key("Column").size(100.0f, 300.0f), [&] {
+            box(ui, Modifier().key("Title").height(20.0f));
+            weighted = box(ui, Modifier().key("Body").weight().fillMaxWidth());
+            fixed = box(ui, Modifier().key("Footer").weight().size(30.0f, 40.0f));
+        });
+        ui.endFrame();
+    }
+    CHECK(weighted.rect.size == Vec2{100.0f, 240.0f});
+    CHECK(fixed.rect.size == Vec2{30.0f, 40.0f});
+}
+
+TEST_CASE("A text shows in its own color, if the modifier gives it one") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    const etude::Color warning{
+        .r = 1.0f,
+        .g = 0.8f,
+        .b = 0.2f,
+    };
+    ui.beginFrame(input, screen, 1);
+    text(ui, "A", Modifier().textColor(warning));
+    text(ui, "B");
+    ui.endFrame();
+
+    REQUIRE(ui.sprites().size() == 2);
+    CHECK(ui.sprites()[0].color.g == warning.g);
+    CHECK(ui.sprites()[1].color.g == etude::ui::theme::textColor.g);
 }

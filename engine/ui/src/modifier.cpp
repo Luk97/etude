@@ -53,6 +53,12 @@ namespace etude::ui {
         return copy;
     }
 
+    Modifier Modifier::weight(float part) const {
+        Modifier copy = *this;
+        copy.settings.weight = part;
+        return copy;
+    }
+
     Modifier Modifier::padding(float pixels) const {
         Modifier copy = *this;
         copy.settings.padding = {pixels, pixels};
@@ -80,6 +86,12 @@ namespace etude::ui {
     Modifier Modifier::background(Color color) const {
         Modifier copy = *this;
         copy.settings.background = color;
+        return copy;
+    }
+
+    Modifier Modifier::textColor(Color color) const {
+        Modifier copy = *this;
+        copy.settings.textColor = color;
         return copy;
     }
 
