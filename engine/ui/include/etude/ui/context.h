@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 
 namespace etude::ui {
@@ -35,9 +36,9 @@ namespace etude::ui {
     ///
     /// Between frames, the context only keeps what the elements cannot describe anew: the picture of the last frame,
     /// which element the mouse holds, where the floating elements are and in which order, how far the elements are
-    /// scrolled, and which element has the focus with its text cursor. The values themselves, such as whether a
-    /// checkbox is on, stay with the game, which hands them in by reference. The parts of the context only appear here
-    /// by name, so that this header shows nothing but what games and widgets use.
+    /// scrolled, and which element has the focus with its text cursor and its text. The values themselves, such as
+    /// whether a checkbox is on, stay with the game, which hands them in by reference. The parts of the context only
+    /// appear here by name, so that this header shows nothing but what games and widgets use.
     class Context {
     public:
         /// @brief Writes with the font, whose atlas the renderer already holds.
@@ -83,6 +84,11 @@ namespace etude::ui {
         /// an element gains the focus, the cursor jumps past the end of any text, so a widget that limits it to its
         /// text starts typing at the end.
         std::size_t& textCursor();
+
+        /// @brief Returns the text that the element with the focus types into, for widgets that edit something else
+        /// than a string of the game, such as a number. It belongs to whichever element has the focus and keeps what
+        /// the last one left, so a widget fills it when it gains the focus.
+        std::string& focusText();
 
     private:
         friend Interaction box(Context& ui, const Modifier& modifier, Content content);

@@ -5,6 +5,7 @@
 #include "scroll_state.h"
 
 #include <cstddef>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -12,7 +13,7 @@ namespace etude::ui {
 
     /// @brief What the context keeps for its elements from one frame to the next: where the floating elements are and
     /// in which order, how far the scrolling elements are scrolled, and which element has the focus with its text
-    /// cursor.
+    /// cursor and, if the game keeps none, its text.
     ///
     /// The memory forgets nothing for now, so a panel that the game hides for a while comes back where it was.
     struct FrameMemory {
@@ -30,5 +31,8 @@ namespace etude::ui {
 
         /// @brief Where the next typed character goes in the text of the element with the focus, in bytes.
         std::size_t cursor = 0;
+
+        /// @brief The text that the element with the focus types into, if the game keeps no string for it.
+        std::string focusText;
     };
 }

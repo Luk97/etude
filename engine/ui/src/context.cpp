@@ -140,6 +140,10 @@ namespace etude::ui {
         return memory->cursor;
     }
 
+    std::string& Context::focusText() {
+        return memory->focusText;
+    }
+
     Interaction Context::openElement(
         const Modifier& modifier,
         Arrangement arrangement,

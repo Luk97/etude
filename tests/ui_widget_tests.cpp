@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <etude/ui/context.h>
 #include <etude/ui/label.h>
@@ -6,6 +7,7 @@
 #include <etude/ui/text.h>
 #include <etude/ui/widgets/button.h>
 #include <etude/ui/widgets/checkbox.h>
+#include <etude/ui/widgets/number_field.h>
 #include <etude/ui/widgets/slider.h>
 #include <etude/ui/widgets/text_field.h>
 
@@ -349,4 +351,108 @@ TEST_CASE("A text field cuts off text that does not fit") {
         .size = {120.0f, 14.0f},
     };
     CHECK(std::ranges::any_of(ui.batches(), [&](const etude::DrawBatch& batch) { return batch.clip == field; }));
+}
+
+TEST_CASE("A text field without a visible label starts with its field") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    std::string value = "Hase";
+    Interaction field;
+    for (int frame = 0; frame < 2; ++frame) {
+        ui.beginFrame(input, screen, 1);
+        field = textField(ui, "##Name", value);
+        ui.endFrame();
+    }
+    CHECK(field.rect.position.x == 0.0f);
+}
+
+TEST_CASE("Dragging the label of a number field changes the value with the mouse, finer while Shift is held") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    float zoom = 1.0f;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        numberField(ui, "Zoom", zoom);
+        ui.endFrame();
+        input.beginFrame();
+    };
+    frame();
+
+    // The label takes 4 characters and the padding of a line, from x 0 to 30.
+    input.onMouseMove({5.0f, 5.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    frame();
+    input.onMouseMove({15.0f, 5.0f});
+    frame();
+    CHECK(zoom == 11.0f);
+
+    input.onKeyDown(Key::Shift);
+    input.onMouseMove({25.0f, 5.0f});
+    frame();
+    CHECK_THAT(zoom, Catch::Matchers::WithinAbs(11.1, 1e-5));
+}
+
+TEST_CASE("A press on a number field lets the keyboard type a value, which counts whenever it reads as a number") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    float value = 5.0f;
+    Interaction field;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        field = numberField(ui, "Wert", value);
+        ui.endFrame();
+        input.beginFrame();
+    };
+    frame();
+
+    // The press puts the cursor behind the 5, so that typing goes on from there.
+    input.onMouseMove({40.0f, 5.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    frame();
+    input.onMouseButtonUp(MouseButton::Left);
+    input.onCharacter(u'0');
+    frame();
+    CHECK(field.focused);
+    CHECK(value == 50.0f);
+
+    input.onCharacter(u'x');
+    frame();
+    CHECK(value == 50.0f);
+    input.onKeyDown(Key::Backspace);
+    input.onKeyUp(Key::Backspace);
+    frame();
+    input.onCharacter(u'.');
+    input.onCharacter(u'5');
+    frame();
+    CHECK(value == 50.5f);
+}
+
+TEST_CASE("A whole number field drags and types whole numbers") {
+    Input input;
+    Context ui{PixelFont{fontTexture}};
+    int layer = 2;
+    const auto frame = [&] {
+        ui.beginFrame(input, screen, 1);
+        numberField(ui, "Layer", layer);
+        ui.endFrame();
+        input.beginFrame();
+    };
+    frame();
+    input.onMouseMove({5.0f, 5.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    frame();
+    input.onMouseMove({8.0f, 5.0f});
+    frame();
+    input.onMouseButtonUp(MouseButton::Left);
+    frame();
+    CHECK(layer == 5);
+
+    // The label of 5 characters ends at x 36, the number follows.
+    input.onMouseMove({45.0f, 5.0f});
+    input.onMouseButtonDown(MouseButton::Left);
+    frame();
+    input.onMouseButtonUp(MouseButton::Left);
+    input.onCharacter(u'7');
+    frame();
+    CHECK(layer == 57);
 }

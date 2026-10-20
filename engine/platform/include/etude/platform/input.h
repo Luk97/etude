@@ -1,90 +1,17 @@
 #pragma once
 
 #include <etude/math/vec2.h>
+#include <etude/platform/key.h>
+#include <etude/platform/mouse_button.h>
 
 #include <array>
-#include <cstddef>
 #include <string>
 #include <string_view>
 
 namespace etude {
 
-    /// @brief A key on the keyboard. Letters and digits are contiguous, so window.cpp can map them by offset.
-    enum class Key {
-        A,
-        B,
-        C,
-        D,
-        E,
-        F,
-        G,
-        H,
-        I,
-        J,
-        K,
-        L,
-        M,
-        N,
-        O,
-        P,
-        Q,
-        R,
-        S,
-        T,
-        U,
-        V,
-        W,
-        X,
-        Y,
-        Z,
-        Digit0,
-        Digit1,
-        Digit2,
-        Digit3,
-        Digit4,
-        Digit5,
-        Digit6,
-        Digit7,
-        Digit8,
-        Digit9,
-        Space,
-        Enter,
-        Escape,
-        Left,
-        Right,
-        Up,
-        Down,
-        Shift,
-        Control,
-        Alt,
-        Backspace,
-        Delete,
-        Tab,
-        Home,
-        End,
-        Count
-    };
-
-    /// @brief A button on the mouse.
-    enum class MouseButton {
-        Left,
-        Right,
-        Middle,
-        Count
-    };
-
-    /// @brief Number of keys.
-    inline constexpr std::size_t keyCount = static_cast<std::size_t>(Key::Count);
-
-    /// @brief Number of mouse buttons.
-    inline constexpr std::size_t mouseButtonCount = static_cast<std::size_t>(MouseButton::Count);
-
-    /// @brief Returns the name of a key as it appears in log lines, for example "A", "7" or "Space".
-    std::string_view toString(Key key);
-
-    /// @brief Returns the name of the mouse button, for example "Left".
-    std::string_view toString(MouseButton button);
-
+    /// @brief The keyboard and the mouse as the window reports them: which keys and buttons are held, which went down
+    /// or up in this frame, where the cursor is, how far the wheel turned and what was typed.
     class Input {
     public:
         bool pressed(Key key) const;
@@ -101,6 +28,9 @@ namespace etude {
         /// @brief Returns the cursor position in client pixels, measured from the top left corner of the window.
         Vec2 mousePosition() const;
 
+        /// @brief Returns how far the cursor moved in this frame, in client pixels.
+        Vec2 mouseMovement() const;
+
         /// @brief Returns how far the mouse wheel turned in this frame, in notches. Positive values turn it away from
         /// the user, which usually scrolls up.
         float wheel() const;
@@ -110,7 +40,7 @@ namespace etude {
         std::string_view text() const;
 
         /// @brief Starts a new frame by forgetting which keys and buttons were pressed or released in the last one,
-        /// how far the wheel turned and what was typed.
+        /// how far the wheel turned and what was typed. The mouse moves from where it is now.
         void beginFrame();
 
         /// @brief Records that a key went down. Further calls while the key is held do not count as new presses, only
@@ -156,6 +86,10 @@ namespace etude {
         std::array<State, keyCount> keys{};
         std::array<State, mouseButtonCount> mouseButtons{};
         Vec2 mouse;
+
+        /// @brief Where the mouse was when the frame began.
+        Vec2 frameStartMouse;
+
         float wheelNotches = 0.0f;
         std::string typed;
 

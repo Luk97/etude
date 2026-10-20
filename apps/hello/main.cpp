@@ -1,6 +1,8 @@
 #include <etude/core/clock.h>
 #include <etude/core/image.h>
 #include <etude/core/log.h>
+#include <etude/platform/key.h>
+#include <etude/platform/mouse_button.h>
 #include <etude/runtime/application.h>
 
 #include <chrono>

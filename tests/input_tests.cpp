@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <etude/platform/input.h>
+#include <etude/platform/key.h>
+#include <etude/platform/mouse_button.h>
 
 using etude::Input;
 using etude::Key;
@@ -124,4 +126,15 @@ TEST_CASE("Input leaves control characters and lone surrogates out of the text")
     input.onCharacter(char16_t{0x1B});
     input.onCharacter(char16_t{0xDE00});
     CHECK(input.text().empty());
+}
+
+TEST_CASE("Input tells how far the mouse moved in the frame") {
+    Input input;
+    input.onMouseMove({10.0f, 5.0f});
+    input.beginFrame();
+    input.onMouseMove({12.0f, 4.0f});
+    input.onMouseMove({14.0f, 2.0f});
+    CHECK(input.mouseMovement() == etude::Vec2{4.0f, -3.0f});
+    input.beginFrame();
+    CHECK(input.mouseMovement() == etude::Vec2{0.0f, 0.0f});
 }

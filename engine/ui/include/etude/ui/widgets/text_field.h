@@ -10,9 +10,9 @@ namespace etude::ui {
     class Context;
 
     /// @brief Shows a field that takes typed text from a press on it until Enter, Escape, a press elsewhere or a frame
-    /// without the field, with the visible text of the label before it. Backspace and Delete remove characters, the
-    /// left and right arrow keys, Home and End move the cursor, and held keys repeat. The text stays with the game and
-    /// has to be valid UTF-8, and the field cuts off what does not fit. Returns what the mouse and the keyboard do with
-    /// the field in this frame, so focused says whether it takes the typed text.
+    /// without the field, with the visible text of the label before it, if there is any. Backspace and Delete remove
+    /// characters, the left and right arrow keys, Home and End move the cursor, and held keys repeat. The text stays
+    /// with the game and has to be valid UTF-8, and the field cuts off what does not fit. Returns what the mouse and
+    /// the keyboard do with the field in this frame, so focused says whether it takes the typed text.
     Interaction textField(Context& ui, std::string_view label, std::string& value);
 }

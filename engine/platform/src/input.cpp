@@ -2,27 +2,9 @@
 
 #include <etude/core/utf8.h>
 
+#include <cstddef>
+
 namespace etude {
-
-    constexpr auto keyNames = std::to_array<std::string_view>(
-        {"A",       "B",   "C",         "D",      "E",     "F",      "G",    "H",     "I",  "J",    "K",
-         "L",       "M",   "N",         "O",      "P",     "Q",      "R",    "S",     "T",  "U",    "V",
-         "W",       "X",   "Y",         "Z",      "0",     "1",      "2",    "3",     "4",  "5",    "6",
-         "7",       "8",   "9",         "Space",  "Enter", "Escape", "Left", "Right", "Up", "Down", "Shift",
-         "Control", "Alt", "Backspace", "Delete", "Tab",   "Home",   "End"}
-    );
-    static_assert(keyNames.size() == keyCount, "keyNames needs one name per Key, in the same order.");
-
-    constexpr auto mouseButtonNames = std::to_array<std::string_view>({"Left", "Right", "Middle"});
-    static_assert(mouseButtonNames.size() == mouseButtonCount, "mouseButtonNames needs one name per MouseButton.");
-
-    std::string_view toString(Key key) {
-        return keyNames[static_cast<std::size_t>(key)];
-    }
-
-    std::string_view toString(MouseButton button) {
-        return mouseButtonNames[static_cast<std::size_t>(button)];
-    }
 
     bool Input::pressed(Key key) const {
         return keys[static_cast<std::size_t>(key)].pressed;
@@ -56,6 +38,10 @@ namespace etude {
         return mouse;
     }
 
+    Vec2 Input::mouseMovement() const {
+        return mouse - frameStartMouse;
+    }
+
     float Input::wheel() const {
         return wheelNotches;
     }
@@ -65,6 +51,7 @@ namespace etude {
     }
 
     void Input::beginFrame() {
+        // Pressed, released and repeated only last for one frame, while held stays until the key or button goes up.
         for (State& state : keys) {
             state.pressed = false;
             state.released = false;
@@ -75,6 +62,9 @@ namespace etude {
             state.released = false;
             state.repeated = false;
         }
+
+        // The movement of the mouse counts from here, and the wheel and the typed text start anew.
+        frameStartMouse = mouse;
         wheelNotches = 0.0f;
         typed.clear();
     }
