@@ -1,9 +1,9 @@
 #include <etude/editor/inspector_pane.h>
 
-#include "inspector_fields.h"
+#include "inspector/inspector_fields.h"
 
 #include <etude/core/assert.h>
-#include <etude/editor/pane.h>
+#include <etude/editor/widgets/pane.h>
 #include <etude/json/json.h>
 #include <etude/scene/component_type.h>
 #include <etude/ui/column.h>

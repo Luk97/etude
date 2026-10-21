@@ -1,4 +1,4 @@
-#include <etude/editor/outline.h>
+#include <etude/editor/scene/outline.h>
 
 #include <etude/math/angle.h>
 

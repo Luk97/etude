@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etude/editor/entity_change.h>
+#include <etude/editor/history/entity_change.h>
 
 #include <vector>
 

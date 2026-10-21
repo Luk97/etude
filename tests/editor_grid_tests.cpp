@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <etude/editor/editor_camera.h>
-#include <etude/editor/grid.h>
+#include <etude/editor/scene/editor_camera.h>
+#include <etude/editor/scene/grid.h>
 #include <etude/math/vec2.h>
 #include <etude/rendering/sprite.h>
 

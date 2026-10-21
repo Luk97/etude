@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etude/editor/command.h>
+#include <etude/editor/history/command.h>
 #include <etude/json/json.h>
 #include <etude/scene/component_registry.h>
 #include <etude/scene/entity.h>

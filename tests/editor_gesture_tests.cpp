@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <etude/editor/command.h>
-#include <etude/editor/gesture.h>
+#include <etude/editor/history/command.h>
+#include <etude/editor/history/gesture.h>
 #include <etude/json/json.h>
 #include <etude/scene/component_registry.h>
 #include <etude/scene/components/transform2d.h>

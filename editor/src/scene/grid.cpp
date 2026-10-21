@@ -1,4 +1,4 @@
-#include <etude/editor/grid.h>
+#include <etude/editor/scene/grid.h>
 
 #include <etude/math/color.h>
 

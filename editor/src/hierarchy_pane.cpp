@@ -1,7 +1,7 @@
 #include <etude/editor/hierarchy_pane.h>
 
-#include <etude/editor/list_item.h>
-#include <etude/editor/pane.h>
+#include <etude/editor/widgets/list_item.h>
+#include <etude/editor/widgets/pane.h>
 #include <etude/scene/components/name.h>
 
 #include <cstdint>

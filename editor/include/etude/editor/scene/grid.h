@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etude/editor/editor_camera.h>
+#include <etude/editor/scene/editor_camera.h>
 #include <etude/math/vec2.h>
 #include <etude/rendering/sprite.h>
 

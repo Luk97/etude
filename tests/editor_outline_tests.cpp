@@ -3,7 +3,7 @@
 
 #include "check_near.h"
 
-#include <etude/editor/outline.h>
+#include <etude/editor/scene/outline.h>
 #include <etude/math/color.h>
 #include <etude/math/vec2.h>
 #include <etude/rendering/sprite.h>

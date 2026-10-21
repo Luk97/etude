@@ -2,7 +2,7 @@
 
 #include "check_near.h"
 
-#include <etude/editor/editor_camera.h>
+#include <etude/editor/scene/editor_camera.h>
 #include <etude/math/vec2.h>
 #include <etude/render2d/camera2d.h>
 

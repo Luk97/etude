@@ -1,4 +1,4 @@
-#include <etude/editor/history.h>
+#include <etude/editor/history/command_stack.h>
 
 #include <etude/core/assert.h>
 #include <etude/scene/scene_json.h>
@@ -33,13 +33,13 @@ namespace etude::editor {
         }
     }
 
-    void History::push(Command command) {
+    void CommandStack::push(Command command) {
         commands.resize(done);
         commands.push_back(std::move(command));
         ++done;
     }
 
-    bool History::undo(World& world, const ComponentRegistry& registry) {
+    bool CommandStack::undo(World& world, const ComponentRegistry& registry) {
         if (done == 0) {
             return false;
         }
@@ -50,7 +50,7 @@ namespace etude::editor {
         return true;
     }
 
-    bool History::redo(World& world, const ComponentRegistry& registry) {
+    bool CommandStack::redo(World& world, const ComponentRegistry& registry) {
         if (done == commands.size()) {
             return false;
         }

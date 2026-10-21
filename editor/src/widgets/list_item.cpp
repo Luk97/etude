@@ -1,4 +1,4 @@
-#include <etude/editor/list_item.h>
+#include <etude/editor/widgets/list_item.h>
 
 #include <etude/ui/box.h>
 #include <etude/ui/label.h>

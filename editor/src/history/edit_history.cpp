@@ -1,15 +1,33 @@
-#include <etude/editor/entity_commands.h>
+#include <etude/editor/history/edit_history.h>
 
+#include <etude/editor/history/command.h>
+#include <etude/editor/history/entity_change.h>
 #include <etude/scene/components/name.h>
 #include <etude/scene/components/transform2d.h>
 #include <etude/scene/scene_json.h>
 
-#include <optional>
 #include <utility>
 
 namespace etude::editor {
 
-    Entity createEntity(World& world, const ComponentRegistry& registry, History& history, Vec2 position) {
+    EditHistory::EditHistory(World& sceneWorld, const ComponentRegistry& componentTypes)
+        : world(sceneWorld), registry(componentTypes) {}
+
+    void EditHistory::watch(std::optional<Entity> selection) {
+        gesture.watch(world, registry, selection);
+    }
+
+    void EditHistory::settle(bool ongoing) {
+        if (std::optional<Command> command = gesture.settle(world, registry, ongoing)) {
+            commands.push(std::move(*command));
+        }
+    }
+
+    bool EditHistory::busy() const {
+        return gesture.open();
+    }
+
+    Entity EditHistory::create(Vec2 position) {
         // The new entity gets a name for the hierarchy and a place in the scene, and nothing else.
         const Entity entity = world.create();
         const Transform2D transform{
@@ -24,13 +42,13 @@ namespace etude::editor {
             .before = std::nullopt,
             .after = writeEntity(world, entity, registry),
         };
-        history.push({
+        commands.push({
             .changes = {std::move(change)},
         });
         return entity;
     }
 
-    void destroyEntity(World& world, const ComponentRegistry& registry, History& history, Entity entity) {
+    void EditHistory::destroy(Entity entity) {
         // The state has to be written while the entity still exists, so that undo can bring it back.
         EntityChange change{
             .entity = entity,
@@ -38,8 +56,16 @@ namespace etude::editor {
             .after = std::nullopt,
         };
         world.destroy(entity);
-        history.push({
+        commands.push({
             .changes = {std::move(change)},
         });
+    }
+
+    bool EditHistory::undo() {
+        return commands.undo(world, registry);
+    }
+
+    bool EditHistory::redo() {
+        return commands.redo(world, registry);
     }
 }

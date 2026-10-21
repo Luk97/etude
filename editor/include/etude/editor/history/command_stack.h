@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etude/editor/command.h>
+#include <etude/editor/history/command.h>
 #include <etude/scene/component_registry.h>
 #include <etude/scene/world.h>
 
@@ -11,7 +11,7 @@ namespace etude::editor {
 
     /// @brief The undo stack: the commands that are done and those that undo took back, which redo can do again. A new
     /// command throws away the ones that could be done again, since they started from a state that is gone.
-    class History {
+    class CommandStack {
     public:
         /// @brief Adds a command that the editor has done already.
         void push(Command command);

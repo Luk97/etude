@@ -1,4 +1,4 @@
-#include <etude/editor/pane.h>
+#include <etude/editor/widgets/pane.h>
 
 #include <etude/ui/box.h>
 #include <etude/ui/column.h>

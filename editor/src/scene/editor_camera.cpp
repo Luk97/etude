@@ -1,4 +1,4 @@
-#include <etude/editor/editor_camera.h>
+#include <etude/editor/scene/editor_camera.h>
 
 #include <algorithm>
 #include <cmath>
