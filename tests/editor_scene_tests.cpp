@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <etude/editor/scene/gizmo_mode.h>
 #include <etude/editor/scene/scene_pane.h>
 #include <etude/math/rect.h>
 #include <etude/math/vec2.h>
@@ -104,13 +105,36 @@ TEST_CASE("The scene pane draws through its own camera, which the middle button 
     CHECK(list.sprites.front().texture == TextureId{});
     CHECK(list.sprites.back().texture == bunnyTexture);
 
-    // The frame of the selection lies in a batch of its own, cut off where the pane shows the world.
+    // The frame of the selection and the gizmo of five parts lie in a batch of their own, cut off where the pane shows
+    // the world.
     REQUIRE(list.batches.size() == 1);
-    CHECK(list.batches[0].sprites.size() == 4);
+    CHECK(list.batches[0].sprites.size() == 4 + 5);
     const etude::Rect view{
         .position = {4.0f, 18.0f},
         .size = {392.0f, 278.0f},
     };
     CHECK(frames.scene.area() == view);
     CHECK(list.batches[0].clip == view);
+}
+
+TEST_CASE("Dragging an axis of the gizmo moves the selection along it, and the pane keeps the mode of the gizmo") {
+    SceneFrames frames;
+    frames.selection = frames.bunny;
+    frames.frame();
+
+    // The x axis of the gizmo reaches 80 pixels to the right of the bunny in the middle of the view, at zoom 1 as many
+    // units. The drag takes it from 60 to 90 pixels, which moves the bunny by 30 units from the frame after the press.
+    frames.input.onMouseMove({260.0f, 157.0f});
+    frames.input.onMouseButtonDown(MouseButton::Left);
+    frames.frame();
+    frames.input.onMouseMove({290.0f, 160.0f});
+    frames.frame();
+    frames.input.onMouseButtonUp(MouseButton::Left);
+    frames.frame();
+    CHECK(frames.selection == frames.bunny);
+    CHECK(frames.world.get<etude::Transform2D>(frames.bunny).position == Vec2{30.0f, 0.0f});
+
+    // The pane keeps the mode that the editor chooses, such as with R, for the toolbar to show.
+    frames.scene.setGizmoMode(etude::editor::GizmoMode::Scale);
+    CHECK(frames.scene.gizmoMode() == etude::editor::GizmoMode::Scale);
 }

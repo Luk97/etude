@@ -3,6 +3,7 @@
 #include <etude/editor/hierarchy_pane.h>
 #include <etude/editor/history/edit_history.h>
 #include <etude/editor/inspector_pane.h>
+#include <etude/editor/scene/gizmo_mode.h>
 #include <etude/editor/scene/scene_pane.h>
 #include <etude/editor/widgets/pane.h>
 #include <etude/platform/input.h>
@@ -39,6 +40,19 @@ namespace {
 
     /// @brief The space between the panes, through which the clear color shows as a thin line.
     constexpr float paneSpacing = 1.0f;
+
+    /// @brief Returns what the toolbar shows for a mode of the gizmo, with the key that chooses it.
+    std::string_view modeLabel(etude::editor::GizmoMode mode) {
+        switch (mode) {
+            case etude::editor::GizmoMode::Move:
+                return "Verschieben (W)";
+            case etude::editor::GizmoMode::Rotate:
+                return "Drehen (E)";
+            case etude::editor::GizmoMode::Scale:
+                return "Skalieren (R)";
+        }
+        std::unreachable();
+    }
 
     /// @brief The editor: a fixed layout of a toolbar and five panes around the scene, which it shows without running
     /// the simulation. Every change of the scene goes into the history, so that undo can take it back.
@@ -90,6 +104,17 @@ namespace {
             if (input.pressed(etude::Key::Delete)) {
                 perform(Action::Destroy);
             }
+
+            // W, E and R choose what the gizmo does, as in most editors.
+            if (input.pressed(etude::Key::W)) {
+                scene.setGizmoMode(etude::editor::GizmoMode::Move);
+            }
+            if (input.pressed(etude::Key::E)) {
+                scene.setGizmoMode(etude::editor::GizmoMode::Rotate);
+            }
+            if (input.pressed(etude::Key::R)) {
+                scene.setGizmoMode(etude::editor::GizmoMode::Scale);
+            }
         }
 
         void onUi(etude::ui::Context& ui) override {
@@ -99,8 +124,8 @@ namespace {
             std::optional<Action> requested;
 
             column(ui, Modifier().fillMaxSize().spacedBy(paneSpacing), [&] {
-                // The toolbar is a line high, with the buttons of the editor and the name of the scene. Its actions
-                // wait until the history has settled the edit of this frame.
+                // The toolbar is a line high, with the buttons of the editor, the mode of the gizmo and the name of the
+                // scene. Its actions wait until the history has settled the edit of this frame.
                 const Modifier toolbar = Modifier()
                                              .fillMaxWidth()
                                              .height(theme::lineHeight)
@@ -119,6 +144,7 @@ namespace {
                     if (button(ui, "Wiederholen").clicked) {
                         requested = Action::Redo;
                     }
+                    text(ui, modeLabel(scene.gizmoMode()));
                     text(ui, startScene.generic_string());
                 });
 

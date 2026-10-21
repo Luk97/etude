@@ -32,6 +32,17 @@ TEST_CASE("Vec2 turns clockwise on the screen, where y points down") {
     checkNear(Vec2{0.0f, 2.0f}.rotated(quarter), {-2.0f, 0.0f});
 }
 
+TEST_CASE("Vec2 knows its angle from the x axis, which turning it by an angle increases") {
+    // Down is a quarter turn from the x axis, and the diagonal down and to the right turned by a quarter lies at three
+    // eighths of a turn.
+    const float quarter = std::numbers::pi_v<float> / 2.0f;
+    const Vec2 down{0.0f, 2.0f};
+    const Vec2 diagonal{1.0f, 1.0f};
+    CHECK(Vec2{3.0f, 0.0f}.angle() == 0.0f);
+    CHECK_THAT(down.angle(), Catch::Matchers::WithinAbs(quarter, 1e-6));
+    CHECK_THAT(diagonal.rotated(quarter).angle(), Catch::Matchers::WithinAbs(1.5f * quarter, 1e-6));
+}
+
 TEST_CASE("Vec2 operations work at compile time") {
     STATIC_REQUIRE(Vec2{1.0f, 2.0f} + Vec2{3.0f, 4.0f} == Vec2{4.0f, 6.0f});
     STATIC_REQUIRE(Vec2{4.0f, 6.0f} / 2.0f == Vec2{2.0f, 3.0f});

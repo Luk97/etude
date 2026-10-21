@@ -9,4 +9,10 @@ namespace etude {
     constexpr float toRadians(float degrees) {
         return degrees * (std::numbers::pi_v<float> / 180.0f);
     }
+
+    /// @brief Converts an angle from radians, in which std::atan2 returns it, into degrees, in which Transform2D keeps
+    /// it.
+    constexpr float toDegrees(float radians) {
+        return radians * (180.0f / std::numbers::pi_v<float>);
+    }
 }

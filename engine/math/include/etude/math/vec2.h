@@ -37,6 +37,12 @@ namespace etude {
             return std::sqrt(lengthSquared());
         }
 
+        /// @brief Returns the angle of the vector in radians from the x axis, between -pi and pi. Because y points
+        /// down, positive angles lie clockwise on the screen, like those of rotated.
+        float angle() const {
+            return std::atan2(y, x);
+        }
+
         /// @brief Returns the vector turned around the origin by the angle in radians. Because y points down, positive
         /// angles turn clockwise on the screen, like Mat3::rotation.
         Vec2 rotated(float radians) const {
