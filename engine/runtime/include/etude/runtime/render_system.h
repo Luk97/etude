@@ -3,6 +3,7 @@
 #include <etude/math/vec2.h>
 #include <etude/render2d/render_list.h>
 #include <etude/rendering/texture_id.h>
+#include <etude/scene/components/transform2d.h>
 #include <etude/scene/entity.h>
 #include <etude/scene/world.h>
 
@@ -21,6 +22,10 @@ namespace etude {
     /// @brief Returns the texture for a path relative to the asset folder, or nothing if it cannot be loaded. Passed
     /// in as a function, it lets drawScene run in tests without a GPU.
     using TextureLookup = std::function<std::optional<LoadedTexture>(const std::string& path)>;
+
+    /// @brief Returns the size of the sprite that drawScene draws for an entity: the size of its texture stretched by
+    /// the scale of its transform, negative where the scale mirrors it.
+    Vec2 spriteSize(const LoadedTexture& texture, const Transform2D& transform);
 
     /// @brief Adds a sprite to the list for each entity with a Transform2D and a SpriteRenderer, ordered by layer and
     /// within a layer by entity index, so that later entities of a scene file cover earlier ones. Entities whose

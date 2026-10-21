@@ -9,6 +9,7 @@
 #include <etude/render2d/render_list.h>
 #include <etude/rendering/renderer.h>
 #include <etude/runtime/frame_stats.h>
+#include <etude/runtime/render_system.h>
 #include <etude/runtime/texture_cache.h>
 #include <etude/scene/component_registry.h>
 #include <etude/scene/world.h>
@@ -58,8 +59,9 @@ namespace etude {
         virtual void onUi(ui::Context& ui);
 
         /// @brief Called once per frame after onUi, right before the frame is drawn. The list already holds the sprites
-        /// of the world, and the game may add its own on top of them. It may also move the camera, unless the world has
-        /// a Camera, which points the camera anew in every frame. Batches that the game adds cover all sprites.
+        /// of the world, and the game may add its own on top of them. Its camera stands where a Camera of the world has
+        /// just pointed it, or without one where the last frame left it, and the game may move it. Batches that the
+        /// game adds cover all sprites.
         virtual void onDraw(RenderList& list);
 
         /// @brief Sets the frames per second.
@@ -94,6 +96,10 @@ namespace etude {
         /// @brief Returns the entities and components of the running scene, which the loop draws in every frame.
         World& world();
 
+        /// @brief Returns the textures of the world by their path, which load once and stay, for example to pick an
+        /// entity with entityAt or to measure its sprite.
+        const TextureLookup& textures() const;
+
         /// @brief Returns the component types that scenes can hold. The engine adds its own first, a game adds its
         /// own in its constructor, before it loads a scene.
         ComponentRegistry& registry();
@@ -113,6 +119,7 @@ namespace etude {
         Window window;
         std::unique_ptr<Renderer> renderer;
         TextureCache textureCache;
+        TextureLookup textureLookup;
         ui::Context uiContext;
         ComponentRegistry componentTypes;
         World sceneWorld;

@@ -21,6 +21,10 @@ namespace etude {
             return {x * scalar, y * scalar};
         }
 
+        constexpr Vec2 operator/(float scalar) const {
+            return {x / scalar, y / scalar};
+        }
+
         constexpr bool operator==(const Vec2&) const = default;
 
         /// @brief Returns the squared length. Cheaper than length(), because it skips the square root,
@@ -31,6 +35,14 @@ namespace etude {
 
         float length() const {
             return std::sqrt(lengthSquared());
+        }
+
+        /// @brief Returns the vector turned around the origin by the angle in radians. Because y points down, positive
+        /// angles turn clockwise on the screen, like Mat3::rotation.
+        Vec2 rotated(float radians) const {
+            const float cosine = std::cos(radians);
+            const float sine = std::sin(radians);
+            return {x * cosine - y * sine, x * sine + y * cosine};
         }
     };
 }

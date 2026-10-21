@@ -1,5 +1,6 @@
 #include <etude/runtime/render_system.h>
 
+#include <etude/math/angle.h>
 #include <etude/scene/components/camera.h>
 #include <etude/scene/components/sprite_renderer.h>
 #include <etude/scene/components/transform2d.h>
@@ -7,7 +8,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <numbers>
 #include <utility>
 #include <vector>
 
@@ -15,20 +15,16 @@ namespace etude {
 
     namespace {
 
-        constexpr float radiansPerDegree = std::numbers::pi_v<float> / 180.0f;
-
         /// @brief A sprite together with what decides its place in the drawing order.
         struct DrawEntry {
             int layer = 0;
             std::uint32_t index = 0;
             Sprite sprite;
         };
+    }
 
-        /// @brief Returns the size of the sprite of an entity: the size of its texture stretched by its scale, negative
-        /// where the scale mirrors it.
-        Vec2 spriteSize(const LoadedTexture& texture, const Transform2D& transform) {
-            return {texture.size.x * transform.scale.x, texture.size.y * transform.scale.y};
-        }
+    Vec2 spriteSize(const LoadedTexture& texture, const Transform2D& transform) {
+        return {texture.size.x * transform.scale.x, texture.size.y * transform.scale.y};
     }
 
     void drawScene(const World& world, Vec2 viewport, const TextureLookup& textures, RenderList& list) {
@@ -45,7 +41,7 @@ namespace etude {
             }
             cameraIndex = indexOf(entity);
             list.camera = {
-                .position = transform.position - viewport * (0.5f / camera.zoom),
+                .position = transform.position - viewport * 0.5f / camera.zoom,
                 .zoom = camera.zoom,
             };
         });
@@ -65,7 +61,7 @@ namespace etude {
                 .sprite = {
                     .position = transform.position - size * 0.5f,
                     .size = size,
-                    .rotation = transform.rotation * radiansPerDegree,
+                    .rotation = toRadians(transform.rotation),
                     .texture = texture->id,
                 },
             });
@@ -94,11 +90,7 @@ namespace etude {
 
             // Turning the point back around the middle of the sprite lines it up with the unturned rectangle, which
             // only has to be compared with half the size.
-            const Vec2 offset = point - transform.position;
-            const float radians = transform.rotation * radiansPerDegree;
-            const float cosine = std::cos(radians);
-            const float sine = std::sin(radians);
-            const Vec2 local{offset.x * cosine + offset.y * sine, offset.y * cosine - offset.x * sine};
+            const Vec2 local = (point - transform.position).rotated(-toRadians(transform.rotation));
             const Vec2 size = spriteSize(*texture, transform);
             if (std::abs(local.x) <= std::abs(size.x) / 2.0f && std::abs(local.y) <= std::abs(size.y) / 2.0f) {
                 found = entity;

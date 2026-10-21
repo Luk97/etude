@@ -138,6 +138,16 @@ TEST_CASE("drawScene skips a Camera without a positive zoom") {
     CHECK(list.camera.zoom == 2.0f);
 }
 
+TEST_CASE("spriteSize stretches the texture by the scale of the transform, negative where it mirrors") {
+    const LoadedTexture texture{
+        .size = {32.0f, 16.0f},
+    };
+    const etude::Transform2D transform{
+        .scale = {-2.0f, 0.5f},
+    };
+    CHECK(etude::spriteSize(texture, transform) == Vec2{-64.0f, 8.0f});
+}
+
 TEST_CASE("entityAt finds the entity on top under the point, by layer first and then by index") {
     World world;
     const Entity back = addBunny(world, 0.0f, 0);

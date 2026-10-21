@@ -37,6 +37,7 @@ namespace etude {
     Application::Application(std::string_view title, int width, int height, std::filesystem::path assetFolder)
         : title(title), window(title, width, height), renderer(createVulkanRenderer(window)),
           textureCache(*renderer, std::move(assetFolder)),
+          textureLookup([this](const std::string& path) { return textureCache.get(path); }),
           uiContext(PixelFont{renderer->createTexture(PixelFont::makeAtlas())}), timestep(stepsPerSecond),
           limiter(initialFramesPerSecond) {
         addBuiltinComponents(componentTypes);
@@ -49,7 +50,6 @@ namespace etude {
         int steps = 0;
         std::chrono::nanoseconds cpuTime{};
         std::chrono::nanoseconds gpuTime{};
-        const TextureLookup lookup = [this](const std::string& path) { return textureCache.get(path); };
 
         while (!window.shouldClose()) {
             window.pollEvents();
@@ -89,7 +89,7 @@ namespace etude {
             const Rect area = viewport.value_or(wholeWindow);
             renderList.sprites.clear();
             renderList.batches.clear();
-            drawScene(sceneWorld, area.size, lookup, renderList);
+            drawScene(sceneWorld, area.size, textureLookup, renderList);
             onDraw(renderList);
             const std::chrono::nanoseconds gameTime = game.elapsed();
 
@@ -172,6 +172,10 @@ namespace etude {
 
     World& Application::world() {
         return sceneWorld;
+    }
+
+    const TextureLookup& Application::textures() const {
+        return textureLookup;
     }
 
     ComponentRegistry& Application::registry() {

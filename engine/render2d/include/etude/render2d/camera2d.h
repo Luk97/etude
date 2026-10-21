@@ -27,7 +27,7 @@ namespace etude {
         /// still covers the whole window, so the world goes on beyond the viewport unless a clip rectangle cuts it off.
         constexpr Mat3 viewProjection(Size window, Rect viewport) const {
             const Rect view{
-                .position = position - viewport.position * (1.0f / zoom),
+                .position = position - viewport.position / zoom,
                 .size = {static_cast<float>(window.width) / zoom, static_cast<float>(window.height) / zoom},
             };
             return Mat3::orthographic(view);

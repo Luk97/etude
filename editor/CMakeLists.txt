@@ -14,7 +14,7 @@ target_sources(etude_editor
 )
 target_compile_features(etude_editor PUBLIC cxx_std_23)
 target_link_libraries(etude_editor
-    PUBLIC etude::core etude::math etude::scene etude::ui
+    PUBLIC etude::core etude::math etude::rendering etude::render2d etude::scene etude::ui
     PRIVATE etude::warnings)
 
 add_executable(editor app/main.cpp)
