@@ -3,6 +3,8 @@
 #include <etude/core/fixed_timestep.h>
 #include <etude/math/color.h>
 #include <etude/math/rect.h>
+#include <etude/platform/answer.h>
+#include <etude/platform/file_filter.h>
 #include <etude/platform/frame_limiter.h>
 #include <etude/platform/input.h>
 #include <etude/platform/window.h>
@@ -28,9 +30,9 @@ namespace etude {
     /// UI on top, shows frames and steps per second in the title and limits the frame rate.
     ///
     /// A game derives from Application and overrides onFrame, onStep, onUi and onDraw, which the loop calls in this
-    /// order, and the loop itself stays the same. In every frame, the UI starts first, so that onFrame can already ask
-    /// whether the UI wants the mouse or the keyboard. The UI scales with the display in whole steps, so that its pixel
-    /// font stays sharp.
+    /// order, and onClose, which it calls when the user closes the window. The loop itself stays the same. In every
+    /// frame, the UI starts first, so that onFrame can already ask whether the UI wants the mouse or the keyboard. The
+    /// UI scales with the display in whole steps, so that its pixel font stays sharp.
     class Application {
     public:
         /// @brief Opens the window. The textures of the world load from the asset folder, which is the working
@@ -41,7 +43,7 @@ namespace etude {
         Application(const Application&) = delete;
         Application& operator=(const Application&) = delete;
 
-        /// @brief Runs the game loop until the user closes the window.
+        /// @brief Runs the game loop until the user closes the window and onClose lets it close.
         void run();
 
     protected:
@@ -57,6 +59,10 @@ namespace etude {
         /// with the building blocks and widgets of etude.ui, so that the drawing of the frame already shows what the UI
         /// changed. The UI lies in the pixels of the window above the world and the batches of the game.
         virtual void onUi(ui::Context& ui);
+
+        /// @brief Called when the user asks to close the window. Returns whether the window may close, so that a game
+        /// can keep it open, such as to ask about unsaved changes first. Closes it if the game leaves it out.
+        virtual bool onClose();
 
         /// @brief Called once per frame after onUi, right before the frame is drawn. The list already holds the sprites
         /// of the world, and the game may add its own on top of them. Its camera stands where a Camera of the world has
@@ -86,6 +92,25 @@ namespace etude {
         /// @brief Loads the textures of the world from another folder from now on, such as the folder of a project that
         /// the editor opens.
         void setAssetFolder(std::filesystem::path folder);
+
+        /// @brief Asks the question in a small window of Windows above this one, with the title of this window and the
+        /// buttons Yes, No and Cancel, and waits for the answer.
+        Answer ask(std::string_view question);
+
+        /// @brief Lets the user choose a file to open in the dialog of Windows, starting in the folder. Returns nothing
+        /// if the user cancels.
+        std::optional<std::filesystem::path> chooseFileToOpen(
+            const std::filesystem::path& folder,
+            const FileFilter& filter
+        );
+
+        /// @brief Lets the user choose where to save a file in the dialog of Windows, starting in the folder with the
+        /// name filled in. Returns nothing if the user cancels.
+        std::optional<std::filesystem::path> chooseFileToSave(
+            const std::filesystem::path& folder,
+            std::string_view name,
+            const FileFilter& filter
+        );
 
         /// @brief Copies the image to the GPU and returns the id under which it can be drawn.
         TextureId createTexture(const Image& image);

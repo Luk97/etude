@@ -35,6 +35,10 @@ namespace etude {
         /// @brief Returns true once the user has asked to close the window, for example with the close button.
         bool shouldClose() const;
 
+        /// @brief Takes back the request to close the window, such as when the user cancels a question about unsaved
+        /// changes.
+        void keepOpen();
+
         /// @brief Replaces the text in the title bar with UTF-8 text.
         void setTitle(std::string_view title);
 

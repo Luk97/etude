@@ -2,6 +2,8 @@
 
 #include <etude/core/clock.h>
 #include <etude/core/log.h>
+#include <etude/platform/ask.h>
+#include <etude/platform/file_dialog.h>
 #include <etude/render2d/pixel_font.h>
 #include <etude/rendering/vulkan/vulkan_renderer.h>
 #include <etude/runtime/motion_system.h>
@@ -51,8 +53,17 @@ namespace etude {
         std::chrono::nanoseconds cpuTime{};
         std::chrono::nanoseconds gpuTime{};
 
-        while (!window.shouldClose()) {
+        while (true) {
             window.pollEvents();
+
+            // A request to close ends the loop, unless the game keeps the window open, such as to ask about unsaved
+            // changes first.
+            if (window.shouldClose()) {
+                if (onClose()) {
+                    break;
+                }
+                window.keepOpen();
+            }
 
             // Measured without the window messages, which stop the loop while the window is dragged. The UI starts its
             // frame first, so that onFrame can already ask whether it wants the mouse.
@@ -135,6 +146,10 @@ namespace etude {
 
     void Application::onUi(ui::Context&) {}
 
+    bool Application::onClose() {
+        return true;
+    }
+
     void Application::onDraw(RenderList&) {}
 
     void Application::setFramesPerSecond(int framesPerSecond) {
@@ -160,6 +175,25 @@ namespace etude {
 
     void Application::setAssetFolder(std::filesystem::path folder) {
         textureCache.setAssetFolder(std::move(folder));
+    }
+
+    Answer Application::ask(std::string_view question) {
+        return etude::ask(window, title, question);
+    }
+
+    std::optional<std::filesystem::path> Application::chooseFileToOpen(
+        const std::filesystem::path& folder,
+        const FileFilter& filter
+    ) {
+        return openFileDialog(window, folder, filter);
+    }
+
+    std::optional<std::filesystem::path> Application::chooseFileToSave(
+        const std::filesystem::path& folder,
+        std::string_view name,
+        const FileFilter& filter
+    ) {
+        return saveFileDialog(window, folder, name, filter);
     }
 
     TextureId Application::createTexture(const Image& image) {

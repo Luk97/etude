@@ -1,11 +1,11 @@
 #include <etude/platform/window.h>
 
+#include "wide_text.h"
+
 #include <etude/core/log.h>
 
-#include <cstddef>
 #include <cstdlib>
 #include <optional>
-#include <string>
 #include <utility>
 
 #include <windows.h>
@@ -29,15 +29,6 @@ namespace etude {
     };
 
     namespace {
-
-        /// @brief Converts UTF-8 to UTF-16, the encoding of the wide-character Win32 functions.
-        std::wstring toWide(std::string_view text) {
-            const int size = static_cast<int>(text.size());
-            const int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), size, nullptr, 0);
-            std::wstring wide(static_cast<std::size_t>(length), L'\0');
-            MultiByteToWideChar(CP_UTF8, 0, text.data(), size, wide.data(), length);
-            return wide;
-        }
 
         /// @brief Prepares the process for its windows and returns the name of the window class they share.
         /// Turns on per-monitor DPI awareness, so that Windows does not stretch the windows blurrily on scaled
@@ -254,6 +245,10 @@ namespace etude {
 
     bool Window::shouldClose() const {
         return native->closeRequested;
+    }
+
+    void Window::keepOpen() {
+        native->closeRequested = false;
     }
 
     void Window::setTitle(std::string_view title) {
